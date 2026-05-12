@@ -1,0 +1,24 @@
+// Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int      @id @default(autoincrement()) // 자동 증가하는 정수형 기본 키
+  email           String   @unique                       // 사용자 이메일, 유일해야 함
+  passwordHash    String                                   // 암호 해시 저장
+  name            String                                   // 사용자 이름
+  profileImageUrl String?                                  // 프로필 이미지 URL (선택)
+  agreedTermsAt   DateTime                                 // 이용 약관 동의 시간
+  createdAt       DateTime @default(now())                 // 생성 시각, 기본값 지금
+  updatedAt       DateTime @updatedAt                      // 수정 시 자동 업데이트
+  isActive        Boolean  @default(true)                  // 계정 활성 여부
+
+  @@map("users")
+}
