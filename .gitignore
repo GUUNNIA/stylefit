@@ -1,0 +1,3 @@
+# 잘못된 위치(repo 루트)에 생긴 SQLite DB 파일 제외.
+# Prisma DB의 정식 위치는 stylefit/prisma/dev.db 입니다.
+/dev.db
