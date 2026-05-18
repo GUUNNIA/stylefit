@@ -3,6 +3,7 @@
 // 분리 이유: 세 섹션(핫·추천·전체)이 같은 카드를 씀.
 // 한 곳에서 정의하고 props로 데이터만 바꿔서 재사용.
 
+import Link from "next/link"
 import { formatDuration } from "@/app/lib/format"
 
 // 카드가 *실제로 쓰는 필드*만 타입에 명시.
@@ -23,27 +24,31 @@ export type ServiceCardData = {
 
 export default function ServiceCard({ service: s }: { service: ServiceCardData }) {
   return (
-    <article className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-        {s.category} · {s.serviceType === "online" ? "온라인" : "오프라인"}
-      </p>
+    // 카드 전체를 Link로 감쌈 → 카드 어디를 눌러도 상세 페이지 이동.
+    // article(시맘틱)은 그대로 안에 유지.
+    <Link href={`/services/${s.id}`} className="block">
+      <article className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          {s.category} · {s.serviceType === "online" ? "온라인" : "오프라인"}
+        </p>
 
-      <h2 className="mt-3 text-lg font-semibold leading-snug">
-        {s.title}
-      </h2>
+        <h2 className="mt-3 text-lg font-semibold leading-snug">
+          {s.title}
+        </h2>
 
-      <p className="mt-1 text-sm text-zinc-600">
-        by {s.sellerProfile.user.name}
-      </p>
+        <p className="mt-1 text-sm text-zinc-600">
+          by {s.sellerProfile.user.name}
+        </p>
 
-      <div className="mt-4 flex items-baseline justify-between border-t border-zinc-100 pt-4">
-        <span className="text-base font-semibold">
-          ₩{s.price.toLocaleString()}
-        </span>
-        <span className="text-sm text-zinc-500">
-          {formatDuration(s.durationMinutes)}
-        </span>
-      </div>
-    </article>
+        <div className="mt-4 flex items-baseline justify-between border-t border-zinc-100 pt-4">
+          <span className="text-base font-semibold">
+            ₩{s.price.toLocaleString()}
+          </span>
+          <span className="text-sm text-zinc-500">
+            {formatDuration(s.durationMinutes)}
+          </span>
+        </div>
+      </article>
+    </Link>
   )
 }

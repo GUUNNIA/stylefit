@@ -11,6 +11,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/app/lib/dal"
 import { deleteSession } from "@/app/lib/session"
+import NavLink from "./NavLink"
 
 // inline Server Action: 함수 내부에 "use server" 지시
 async function logoutAction() {
@@ -30,15 +31,14 @@ export default async function Header() {
         </Link>
 
         <nav className="flex items-center gap-3 text-sm">
-          <Link
-            href="/services"
-            className="text-zinc-600 transition-colors hover:text-zinc-900"
-          >
+          {/* /services 와 /services/[id] 둘 다에서 "서비스" 강조 → matchPrefix */}
+          <NavLink href="/services" matchPrefix>
             서비스
-          </Link>
+          </NavLink>
 
           {user ? (
             <>
+              <NavLink href="/bookings">내 예약</NavLink>
               <span className="text-zinc-700">{user.name}님</span>
               <form action={logoutAction}>
                 <button

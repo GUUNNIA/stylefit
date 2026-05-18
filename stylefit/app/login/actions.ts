@@ -16,6 +16,7 @@
 
 import { prisma } from "@/app/lib/prisma"
 import { createSession } from "@/app/lib/session"
+import { safeReturnUrl } from "@/app/lib/format"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
@@ -35,6 +36,9 @@ export async function loginAction(
 ): Promise<LoginState> {
   // 검증 전에 *원본 입력값*을 미리 추출 — 에러 응답에 그대로 돌려주기 위해
   const email = (formData.get("email") as string | null) ?? ""
+  // return URL — 비로그인 사용자가 보호된 페이지에서 왔으면 그곳으로 다시 보냄.
+  // 외부 사이트 redirect 방지(open redirect)는 safeReturnUrl에서 처리.
+  const from = formData.get("from") as string | null
 
   const result = LoginSchema.safeParse({
     email,
@@ -56,5 +60,5 @@ export async function loginAction(
 
   // redirect는 내부적으로 throw → 함수가 끝나지 않고 자동 이동.
   // (try/catch 안에서 redirect는 위험 — catch가 throw를 먹어서 redirect 무효화)
-  redirect("/services")
+  redirect(safeReturnUrl(from, "/services"))
 }

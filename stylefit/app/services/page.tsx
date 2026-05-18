@@ -6,6 +6,7 @@
 
 import { prisma } from "@/app/lib/prisma"
 import ServiceCard, { type ServiceCardData } from "@/app/components/ServiceCard"
+import SuccessBanner from "@/app/components/SuccessBanner"
 
 // 세 쿼리가 같은 relation을 include함 → 한 곳에서 정의하고 재사용 (DRY)
 const SECTION_INCLUDE = {
@@ -14,7 +15,14 @@ const SECTION_INCLUDE = {
   },
 } as const
 
-export default async function ServicesPage() {
+export default async function ServicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>
+}) {
+  // 회원가입 직후 환영 배너 표시용 — from 없이 가입했을 때만 set 됨
+  const { welcome } = await searchParams
+
   // 세 섹션 데이터를 *병렬*로 페치.
   // 순차 await 3번이면 (t1 + t2 + t3) 시간 — 각 쿼리가 끝나야 다음 시작.
   // Promise.all이면 max(t1, t2, t3) 시간 — 동시에 보냄, 다 끝나면 결과 묶음.
@@ -42,6 +50,11 @@ export default async function ServicesPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">
+      {/* 회원가입 직후 환영 배너 — from 없이 가입했을 때만 */}
+      {welcome && (
+        <SuccessBanner message="가입이 완료되었습니다. Stylefit에 오신 것을 환영합니다." />
+      )}
+
       <h1 className="mb-10 text-3xl font-bold tracking-tight">
         서비스 둘러보기
       </h1>

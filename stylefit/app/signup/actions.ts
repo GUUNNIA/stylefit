@@ -15,6 +15,7 @@
 
 import { prisma } from "@/app/lib/prisma"
 import { createSession } from "@/app/lib/session"
+import { safeReturnUrl } from "@/app/lib/format"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
@@ -58,6 +59,8 @@ export async function signupAction(
   // 원본 입력값 — 에러 응답 시 그대로 돌려주기 위해 먼저 추출
   const email = (formData.get("email") as string | null) ?? ""
   const name = (formData.get("name") as string | null) ?? ""
+  // return URL — 비로그인 사용자가 보호 페이지에서 회원가입으로 왔으면 그곳으로 복귀
+  const from = formData.get("from") as string | null
 
   const result = SignupSchema.safeParse({
     email,
@@ -100,5 +103,11 @@ export async function signupAction(
   })
 
   await createSession(user.id)
-  redirect("/services")
+
+  // from 있으면 원래 페이지로 (사용자가 하려던 작업 우선), 없으면 환영 배너와 함께 services로
+  if (from) {
+    redirect(safeReturnUrl(from, "/services"))
+  } else {
+    redirect("/services?welcome=1")
+  }
 }
