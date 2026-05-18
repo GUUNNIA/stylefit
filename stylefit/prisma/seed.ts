@@ -547,6 +547,41 @@ async function main() {
   })
   console.log("  Collection 2개 + ServiceCollection 6개 생성 완료")
 
+  // 10) 본인 계정 (개발자 본인 — buyer + seller 둘 다 작동)
+  //     매번 시드 돌려도 본인 계정으로 로그인 가능하도록 시드에 포함.
+  //     SellerProfile + Service 까지 만들어 seller 측 화면도 즉시 검증 가능.
+  const me = await prisma.user.create({
+    data: {
+      email: "guun@forcs.com",
+      passwordHash: seedPasswordHash,
+      name: "GUUN",
+      agreedTermsAt: new Date(),
+    },
+  })
+
+  const myProfile = await prisma.sellerProfile.create({
+    data: {
+      userId: me.id,
+      bio: "디자인 전공자, 학습용 계정입니다.",
+      specialty: "UI/UX 디자인",
+      verificationStatus: "approved",
+      approvedAt: new Date(),
+    },
+  })
+
+  await prisma.service.create({
+    data: {
+      sellerProfileId: myProfile.id,
+      title: "UI/UX 디자인 1:1 컨설팅",
+      description: "UI/UX 디자인 작업물·포트폴리오를 1:1로 컨설팅해드립니다.",
+      serviceType: "online",
+      category: "디자인 컨설팅",
+      price: 70000,
+      durationMinutes: 60,
+    },
+  })
+  console.log("  본인 계정 1명 (User + SellerProfile + Service) 생성 완료")
+
   console.log("시드 완료!")
   console.log(`  ※ 모든 시드 user 비번: ${SEED_PASSWORD_PLAIN}`)
 }
