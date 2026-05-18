@@ -19,6 +19,13 @@ const SECTION_INCLUDE = {
   },
 } as const
 
+// 구매자 측 가시성 필터 (Day 13) — 셀러가 비활성화한 것, 운영자 미검증은 제외.
+// 세 쿼리에서 spread로 재사용 — 향후 노출 조건 추가·변경 시 한 곳만 수정.
+const VISIBLE_SERVICE_FILTER = {
+  isActive: true,
+  verificationStatus: "approved",
+} as const
+
 export default async function ServicesPage({
   searchParams,
 }: {
@@ -33,7 +40,7 @@ export default async function ServicesPage({
   const [hot, featured, all] = await Promise.all([
     prisma.service.findMany({
       where: {
-        isActive: true,
+        ...VISIBLE_SERVICE_FILTER,
         collections: { some: { collection: { slug: "hot" } } },
       },
       include: SECTION_INCLUDE,
@@ -41,14 +48,14 @@ export default async function ServicesPage({
     }),
     prisma.service.findMany({
       where: {
-        isActive: true,
+        ...VISIBLE_SERVICE_FILTER,
         collections: { some: { collection: { slug: "featured" } } },
       },
       include: SECTION_INCLUDE,
       orderBy: { id: "asc" },
     }),
     prisma.service.findMany({
-      where: { isActive: true },
+      where: VISIBLE_SERVICE_FILTER,
       include: SECTION_INCLUDE,
       orderBy: { createdAt: "desc" },
       take: 12,

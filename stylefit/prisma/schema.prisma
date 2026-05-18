@@ -59,7 +59,10 @@ model Service {
   category        String                                     // 서비스 카테고리
   price           Int                                        // 서비스 가격 (원 단위)
   durationMinutes Int                                        // 서비스 소요 시간 (분)
-  isActive        Boolean        @default(true)               // 서비스 활성 여부
+  isActive        Boolean        @default(true)               // 서비스 활성 여부 (셀러가 토글)
+  // 운영자 검증 상태 (Day 13). 신규 등록은 default pending → /services 노출 안 됨.
+  // 시드 데이터는 명시적으로 "approved" 지정. Day 14에 /admin/services 검증 화면 도입 예정.
+  verificationStatus String     @default("pending")          // pending / approved / rejected
   createdAt       DateTime       @default(now())              // 생성 시각
   updatedAt       DateTime       @updatedAt                  // 수정 시 자동 업데이트
 

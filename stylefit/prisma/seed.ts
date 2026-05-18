@@ -582,6 +582,15 @@ async function main() {
   })
   console.log("  본인 계정 1명 (User + SellerProfile + Service) 생성 완료")
 
+  // 11) 모든 시드 service를 verificationStatus="approved"로 일괄 표시 (Day 13)
+  //     schema의 default가 "pending"이라 신규 등록은 검증 대기 상태로 시작.
+  //     시드 데이터는 *운영 중인 검증된 서비스* 가정 → 일괄 approved.
+  //     (각 service.create 호출에 verificationStatus를 일일이 박는 대신 한 번에 처리)
+  await prisma.service.updateMany({
+    data: { verificationStatus: "approved" },
+  })
+  console.log("  모든 시드 service를 approved로 표시 완료")
+
   console.log("시드 완료!")
   console.log(`  ※ 모든 시드 user 비번: ${SEED_PASSWORD_PLAIN}`)
 }
