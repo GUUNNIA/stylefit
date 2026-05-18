@@ -65,8 +65,45 @@ model Service {
 
   sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id]) // 셀러 프로필과 관계
   bookings        Booking[]                                   // 이 서비스에 대한 예약 목록
+  collections     ServiceCollection[]                         // 이 서비스가 속한 컬렉션들 (다대다, Day 12)
 
   @@map("services")
+}
+
+// 큐레이션 컬렉션 (Day 12)
+// 예: "에디터 추천", "지금 핫한 서비스" 같은 묶음을 표현.
+// 운영자가 *어떤 서비스를 어떤 묶음에 넣을지* 결정 — 운영 유연성.
+model Collection {
+  id           Int                 @id @default(autoincrement())
+  slug         String              @unique  // URL/쿼리용 식별자 (예: "featured", "hot")
+  name         String              // 화면에 표시되는 이름 (예: "에디터 추천")
+  displayOrder Int                 @default(0)  // 페이지에서 컬렉션 간 정렬
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  services     ServiceCollection[] // 이 컬렉션에 속한 서비스들 (다대다)
+
+  @@map("collections")
+}
+
+// 매핑 테이블 — Collection ↔ Service 다대다 관계 표현 (Day 12)
+//
+// Implicit 다대다 (Prisma가 자동 생성)도 가능하지만 *displayOrder*처럼
+// 매핑 자체에 메타 데이터를 붙이려면 explicit 매핑 테이블이 필요.
+// 한 서비스가 *"추천"에선 1번, "핫"에선 3번*처럼 *컬렉션별 다른 순서* 가능.
+model ServiceCollection {
+  collectionId Int
+  serviceId    Int
+  displayOrder Int      @default(0)  // 이 컬렉션 안에서 서비스 표시 순서
+  createdAt    DateTime @default(now())
+
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  service      Service    @relation(fields: [serviceId], references: [id])
+
+  // 복합 기본 키 — (컬렉션, 서비스) 조합이 유일.
+  // 같은 서비스를 같은 컬렉션에 두 번 넣을 수 없음.
+  @@id([collectionId, serviceId])
+  @@map("service_collections")
 }
 
 model Booking {

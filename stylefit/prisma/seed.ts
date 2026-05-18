@@ -2,9 +2,15 @@
 // 실행 명령: npx prisma db seed
 
 import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
 // Prisma 클라이언트: DB와 대화하는 도구
 const prisma = new PrismaClient()
+
+// 모든 시드 user 공통 비번 — 학습용 표준값
+// (Day 11까지 "hashed_password_dummy" 더미값이라 시드 user로 로그인 불가했던 문제 해결)
+// 시드 실행 시점에 bcrypt.hash로 *진짜 hash* 생성 → 모든 user에 재사용
+const SEED_PASSWORD_PLAIN = "seed1234!"
 
 // 날짜 헬퍼: 지금으로부터 N일 후(음수면 N일 전)의 Date 반환
 //   예) daysFromNow(3)   → 3일 후
@@ -27,6 +33,10 @@ const minutesFromNow = (mins: number) => {
 async function main() {
   console.log("시드 시작...")
 
+  // 비번 hash를 한 번만 계산해서 9명 user에 재사용
+  // (bcrypt.hash는 ~100ms로 느린 편 — 9번 호출하면 1초 가량 낭비)
+  const seedPasswordHash = await bcrypt.hash(SEED_PASSWORD_PLAIN, 10)
+
   // 1) 기존 데이터 정리 (영역별 그룹화 — FK 역순과 자연스럽게 일치)
   //    매 실행마다 깨끗한 상태에서 시작하기 위함
 
@@ -36,6 +46,10 @@ async function main() {
 
   // 후기 영역
   await prisma.review.deleteMany()
+
+  // 큐레이션 영역 (Day 12 — Service 삭제 전에 매핑 먼저 정리)
+  await prisma.serviceCollection.deleteMany()
+  await prisma.collection.deleteMany()
 
   // 거래 영역
   await prisma.booking.deleteMany()
@@ -51,7 +65,7 @@ async function main() {
   const buyer1 = await prisma.user.create({
     data: {
       email: "minji.kim@example.com",
-      passwordHash: "hashed_password_dummy", // Day 5+에 실제 해시로 교체
+      passwordHash: seedPasswordHash,
       name: "김민지",
       agreedTermsAt: new Date(),
     },
@@ -59,7 +73,7 @@ async function main() {
   const buyer2 = await prisma.user.create({
     data: {
       email: "seoyeon.park@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "박서연",
       agreedTermsAt: new Date(),
     },
@@ -67,7 +81,7 @@ async function main() {
   const buyer3 = await prisma.user.create({
     data: {
       email: "doyoon.lee@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "이도윤",
       agreedTermsAt: new Date(),
     },
@@ -75,7 +89,7 @@ async function main() {
   const buyer4 = await prisma.user.create({
     data: {
       email: "hajoon.choi@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "최하준",
       agreedTermsAt: new Date(),
     },
@@ -83,7 +97,7 @@ async function main() {
   const buyer5 = await prisma.user.create({
     data: {
       email: "sua.jung@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "정수아",
       agreedTermsAt: new Date(),
     },
@@ -94,7 +108,7 @@ async function main() {
   const seller1 = await prisma.user.create({
     data: {
       email: "jiwon.kang@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "강지원",
       agreedTermsAt: new Date(),
     },
@@ -102,7 +116,7 @@ async function main() {
   const seller2 = await prisma.user.create({
     data: {
       email: "chaerin.yoon@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "윤채린",
       agreedTermsAt: new Date(),
     },
@@ -110,7 +124,7 @@ async function main() {
   const seller3 = await prisma.user.create({
     data: {
       email: "taemin.han@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "한태민",
       agreedTermsAt: new Date(),
     },
@@ -118,7 +132,7 @@ async function main() {
   const seller4 = await prisma.user.create({
     data: {
       email: "hyunwoo.oh@example.com",
-      passwordHash: "hashed_password_dummy",
+      passwordHash: seedPasswordHash,
       name: "오현우",
       agreedTermsAt: new Date(),
     },
@@ -504,7 +518,37 @@ async function main() {
   })
   console.log("  MessageThread 2개 + Message 6개 생성 완료")
 
+  // 9) Collection 2개 + ServiceCollection 매핑 (Day 12 — 큐레이션 도입)
+  //    한 서비스가 *여러 컬렉션에 속할 수 있는* 다대다 관계가 진짜 작동하는지 검증용으로
+  //    portfolioReview를 *featured + hot 둘 다*에 넣음.
+  const featuredCollection = await prisma.collection.create({
+    data: { slug: "featured", name: "에디터 추천", displayOrder: 1 },
+  })
+  const hotCollection = await prisma.collection.create({
+    data: { slug: "hot", name: "지금 핫한 서비스", displayOrder: 2 },
+  })
+
+  // featured — 디자인 컨설팅 중심
+  await prisma.serviceCollection.createMany({
+    data: [
+      { collectionId: featuredCollection.id, serviceId: portfolioReview.id, displayOrder: 1 },
+      { collectionId: featuredCollection.id, serviceId: designMentoring.id, displayOrder: 2 },
+      { collectionId: featuredCollection.id, serviceId: companySite.id, displayOrder: 3 },
+    ],
+  })
+
+  // hot — 영상·큰 작업 중심. portfolioReview는 *featured와 겹침* (다대다 작동 증거)
+  await prisma.serviceCollection.createMany({
+    data: [
+      { collectionId: hotCollection.id, serviceId: youtubeEdit.id, displayOrder: 1 },
+      { collectionId: hotCollection.id, serviceId: adVideo.id, displayOrder: 2 },
+      { collectionId: hotCollection.id, serviceId: portfolioReview.id, displayOrder: 3 },
+    ],
+  })
+  console.log("  Collection 2개 + ServiceCollection 6개 생성 완료")
+
   console.log("시드 완료!")
+  console.log(`  ※ 모든 시드 user 비번: ${SEED_PASSWORD_PLAIN}`)
 }
 
 // 메인 함수 실행 + 에러 처리 + 연결 정리
