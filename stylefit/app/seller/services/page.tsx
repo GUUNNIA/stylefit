@@ -11,6 +11,7 @@ import Link from "next/link"
 import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
+import { setServiceVisibilityAction } from "./actions"
 
 // 검증 상태 라벨 (Day 13). approved는 *기본*이라 null — 라벨 안 그림.
 // pending/rejected만 셀러에게 시각적으로 표시.
@@ -124,14 +125,46 @@ export default async function SellerServicesPage() {
                 </div>
 
                 {/* 반려 사유 박스 (Day 14) — rejected 상태일 때만 노출.
-                    셀러한테 *왜 반려됐는지* 알려야 수정·재제출 행동 가능.
-                    Day 15+에 서비스 수정 기능 도입되면 *수정하기* 버튼도 같이. */}
+                    셀러한테 *왜 반려됐는지* 알려야 수정·재제출 행동 가능. */}
                 {s.verificationStatus === "rejected" && s.rejectionReason && (
                   <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
                     <strong className="font-semibold">반려 사유:</strong>{" "}
                     {s.rejectionReason}
                   </div>
                 )}
+
+                {/* 액션 바 (Day 15) — 카드 맨 아래 우측 정렬.
+                    수정은 *모든 검증 상태에서 허용* (반려 셀러의 재제출 흐름 포함).
+                    숨기기/노출은 isActive 의 *반대값* 을 명시 set — 토글이 아니라
+                    race-safe 패턴 (actions.ts 의 설명 참고). */}
+                <div className="mt-4 flex justify-end gap-2">
+                  <Link
+                    href={`/seller/services/${s.id}/edit`}
+                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+                  >
+                    수정
+                  </Link>
+                  {/* 단일 액션·검증 없는 폼이라 Client component 없이 inline.
+                      nextActive 는 *현재의 반대값* 을 hidden 으로 박아 보냄. */}
+                  <form action={setServiceVisibilityAction}>
+                    <input type="hidden" name="serviceId" value={s.id} />
+                    <input
+                      type="hidden"
+                      name="nextActive"
+                      value={s.isActive ? "false" : "true"}
+                    />
+                    <button
+                      type="submit"
+                      className={
+                        s.isActive
+                          ? "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+                          : "rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white transition-colors hover:bg-zinc-800"
+                      }
+                    >
+                      {s.isActive ? "숨기기" : "다시 노출"}
+                    </button>
+                  </form>
+                </div>
               </li>
             )
           })}
