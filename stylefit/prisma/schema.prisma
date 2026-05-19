@@ -19,6 +19,9 @@ model User {
   createdAt       DateTime @default(now())                 // 생성 시각, 기본값 지금
   updatedAt       DateTime @updatedAt                      // 수정 시 자동 업데이트
   isActive        Boolean  @default(true)                  // 계정 활성 여부
+  // 권한 모델 (Day 14) — admin 만 /admin/* 화면 접근 가능.
+  // default "user" 이라 신규 가입은 자동으로 일반 사용자. admin은 *명시적 부여* 필요.
+  role            String   @default("user")                // user / admin
 
   sellerProfile   SellerProfile?                         // 셀러 프로필 1:1 관계
   bookings        Booking[]   @relation("BookingBuyer")  // 구매자 예약 목록
@@ -35,6 +38,7 @@ model SellerProfile {
   bio               String?                                  // 셀러 소개글
   specialty         String?                                  // 셀러 전문 분야
   verificationStatus String  @default("pending")             // 셀러 인증 상태 (pending/approved/rejected)
+  rejectionReason   String?                                   // 반려 사유 (rejected일 때 작성됨, 셀러에게 표시) — Day 14
   instagramHandle   String?                                  // 인스타그램 핸들
   portfolioUrls     String?                                  // 포트폴리오 URL 배열을 JSON 문자열로 저장
   approvedAt        DateTime?                                // 셀러 승인 시간
@@ -61,8 +65,9 @@ model Service {
   durationMinutes Int                                        // 서비스 소요 시간 (분)
   isActive        Boolean        @default(true)               // 서비스 활성 여부 (셀러가 토글)
   // 운영자 검증 상태 (Day 13). 신규 등록은 default pending → /services 노출 안 됨.
-  // 시드 데이터는 명시적으로 "approved" 지정. Day 14에 /admin/services 검증 화면 도입 예정.
+  // 시드 데이터는 명시적으로 "approved" 지정 (단 Day 14 admin 검증용 *pending 2개*는 예외).
   verificationStatus String     @default("pending")          // pending / approved / rejected
+  rejectionReason String?                                    // 반려 사유 (rejected일 때 작성됨, 셀러에게 표시) — Day 14
   createdAt       DateTime       @default(now())              // 생성 시각
   updatedAt       DateTime       @updatedAt                  // 수정 시 자동 업데이트
 

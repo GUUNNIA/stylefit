@@ -54,12 +54,69 @@ export async function requireSellerProfile(returnUrl: string) {
     redirect(`/login?from=${encodeURIComponent(returnUrl)}`)
   }
 
+  // user 존재 확인 (시드 재실행 후 stale 세션 방어) — DB에 없으면 비로그인과 동일 처리
+  const userExists = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true },
+  })
+  if (!userExists) {
+    redirect(`/login?from=${encodeURIComponent(returnUrl)}`)
+  }
+
   const profile = await prisma.sellerProfile.findUnique({
     where: { userId: session.userId },
   })
-  if (profile?.verificationStatus !== "approved") {
+
+  // 분기 두 종류 (Day 14):
+  //   - SellerProfile *없음* (구매자만인 user) → /services (구매자 페이지로)
+  //   - SellerProfile *있지만 미승인* (pending/rejected) → /seller/pending (안내 페이지)
+  // pending/rejected 셀러가 *왜 못 들어가는지* 명확히 알 수 있게 분리.
+  if (!profile) {
     redirect("/services")
+  }
+  if (profile.verificationStatus !== "approved") {
+    redirect("/seller/pending")
   }
 
   return profile
+}
+
+// 어드민 페이지 보호용 — 비로그인 + 비admin 모두 차단 (Day 14)
+//
+// 정책:
+// - 비로그인              → /login?from=<returnUrl>
+// - 로그인 + role !== "admin" → /services (구매자 페이지로 보냄)
+//
+// 반환된 user는 NonNull + role: "admin" 보장 (redirect()의 반환 타입이 never라
+// 호출 측에서 narrowing 자동 적용).
+//
+// 학습 단계엔 User.role 컬럼 기반 — ADMIN_EMAILS 환경변수나 AdminProfile 테이블 대안.
+// 본인 SellerProfile 패턴(1:1 별도 테이블)과 *대조적*. 두 패턴을 다 학습.
+//
+// 주의: redirect()는 throw → try/catch에 감싸면 무효화.
+export async function requireAdmin(returnUrl: string) {
+  const session = await verifySession()
+  if (!session) {
+    redirect(`/login?from=${encodeURIComponent(returnUrl)}`)
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+    },
+  })
+  // user 존재 확인 (시드 재실행 후 stale 세션 방어) — DB에 없으면 비로그인과 동일 처리.
+  // *user 없음*과 *admin 아님*을 구분 — 전자는 /login, 후자는 /services.
+  if (!user) {
+    redirect(`/login?from=${encodeURIComponent(returnUrl)}`)
+  }
+  if (user.role !== "admin") {
+    redirect("/services")
+  }
+
+  return user
 }

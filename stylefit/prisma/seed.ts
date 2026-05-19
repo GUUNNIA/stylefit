@@ -556,6 +556,7 @@ async function main() {
       passwordHash: seedPasswordHash,
       name: "GUUN",
       agreedTermsAt: new Date(),
+      role: "admin", // Day 14 — 본인 GUUN은 admin (admin·seller 겸직). 다른 시드 user는 default "user".
     },
   })
 
@@ -590,6 +591,35 @@ async function main() {
     data: { verificationStatus: "approved" },
   })
   console.log("  모든 시드 service를 approved로 표시 완료")
+
+  // 12) admin 검증 대기 service 2개 (Day 14)
+  //     verificationStatus default가 "pending"이라 명시 안 해도 pending.
+  //     /admin/services 화면 진입 시 즉시 검증 대상으로 노출됨 (검증 흐름 학습용).
+  //     *위 updateMany 다음에* 만들어야 approved로 덮이지 않음.
+  await prisma.service.create({
+    data: {
+      sellerProfileId: profile1.id, // 강지원이 추가 등록한 시뮬레이션
+      title: "디자인 시스템 구축",
+      description: "토큰·컴포넌트 라이브러리·문서까지 풀스택 디자인 시스템 구축.",
+      serviceType: "online",
+      category: "디자인 컨설팅",
+      price: 2_000_000,
+      durationMinutes: 14400, // 10일
+      // verificationStatus 명시 안 함 → default "pending"
+    },
+  })
+  await prisma.service.create({
+    data: {
+      sellerProfileId: profile2.id, // 윤채린이 추가 등록한 시뮬레이션
+      title: "포트폴리오 사이트 (1p)",
+      description: "1페이지 분량의 디자이너·작가 포트폴리오 사이트.",
+      serviceType: "online",
+      category: "웹사이트 제작",
+      price: 200_000,
+      durationMinutes: 1440, // 1일
+    },
+  })
+  console.log("  admin 검증 대기 service 2개 추가 (pending)")
 
   console.log("시드 완료!")
   console.log(`  ※ 모든 시드 user 비번: ${SEED_PASSWORD_PLAIN}`)

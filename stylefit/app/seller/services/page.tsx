@@ -122,6 +122,16 @@ export default async function SellerServicesPage() {
                     <p className="mt-0.5">{s.bookings.length}건</p>
                   </div>
                 </div>
+
+                {/* 반려 사유 박스 (Day 14) — rejected 상태일 때만 노출.
+                    셀러한테 *왜 반려됐는지* 알려야 수정·재제출 행동 가능.
+                    Day 15+에 서비스 수정 기능 도입되면 *수정하기* 버튼도 같이. */}
+                {s.verificationStatus === "rejected" && s.rejectionReason && (
+                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                    <strong className="font-semibold">반려 사유:</strong>{" "}
+                    {s.rejectionReason}
+                  </div>
+                )}
               </li>
             )
           })}
