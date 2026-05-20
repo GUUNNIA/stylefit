@@ -9,35 +9,15 @@
 //   대신 *종류별로 id 모아서 in:[...] 한 번씩* — 총 3 쿼리 (audit + Service in + Seller in).
 //   Map 으로 attach → 렌더 시 O(1) lookup.
 //
-// 필터 (5 단계):
-//   ?action=approved&targetType=Service — 두 축 동시. Day 14 의 화이트리스트 + Day 16 의
-//   빈 객체 spread 패턴 *세 번째 사용처*. chipClass / URL 빌더 는 *복붙* — Day 19 에서
-//   세 사용처 (admin/services 의 status, /services 의 category·q, audit-log 의 action·targetType)
-//   공통 추출 예정.
+// 필터:
+//   ?action=approved&targetType=Service — 두 축 동시. 한 축 변경 시 다른 축 *보존*.
+//   chipClass / buildUrl / validateEnumParam 은 Day 19 에 `app/lib/url-filter.ts` 로 추출 완료.
 
 import Link from "next/link"
 import { requireAdmin } from "@/app/lib/dal"
 import { prisma } from "@/app/lib/prisma"
 import { AuditAction, AuditTargetType } from "@prisma/client"
-
-// 칩 스타일 — Day 16 services/page.tsx 와 동일. Day 19 추출 대상.
-const chipClass = (isActive: boolean) =>
-  isActive
-    ? "rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white"
-    : "rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
-
-// URL 빌더 — Day 16 buildSearchUrl 와 동일 결. truthy 인 축만 ?param= 으로 들어감.
-// 빈 칩 (전체) = 해당 축 *생략* → 다른 축은 보존되어 *축 간 상호 보존* UX.
-function buildLogUrl(opts: {
-  action?: AuditAction
-  targetType?: AuditTargetType
-}): string {
-  const params = new URLSearchParams()
-  if (opts.action) params.set("action", opts.action)
-  if (opts.targetType) params.set("targetType", opts.targetType)
-  const qs = params.toString()
-  return qs ? `/admin/audit-log?${qs}` : "/admin/audit-log"
-}
+import { buildUrl, chipClass, validateEnumParam } from "@/app/lib/url-filter"
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   approved: "승인",
@@ -65,10 +45,10 @@ function extractRejectionReason(metadata: unknown): string | null {
   return typeof reason === "string" ? reason : null
 }
 
-// 화이트리스트 — 외부 입력 (URL 쿼리) 을 *enum 값과 매칭* 통과한 것만 사용.
-// Day 14·16 의 화이트리스트 패턴 그대로. enum 의 *런타임 const 객체* 가 source of truth.
-const ACTION_VALUES = Object.values(AuditAction)
-const TARGET_VALUES = Object.values(AuditTargetType)
+// 칩 그룹 map 용 — enum 의 런타임 값 목록. validateEnumParam 호출에도 재사용.
+// 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음.
+const ACTION_VALUES: readonly AuditAction[] = Object.values(AuditAction)
+const TARGET_VALUES: readonly AuditTargetType[] = Object.values(AuditTargetType)
 
 export default async function AuditLogPage({
   searchParams,
@@ -80,16 +60,8 @@ export default async function AuditLogPage({
   const { action: rawAction, targetType: rawTarget } = await searchParams
 
   // 화이트리스트 매칭 — 잘못된 값은 *조용히 undefined* (필터 미적용)
-  const action: AuditAction | undefined = (ACTION_VALUES as string[]).includes(
-    rawAction ?? ""
-  )
-    ? (rawAction as AuditAction)
-    : undefined
-  const targetType: AuditTargetType | undefined = (
-    TARGET_VALUES as string[]
-  ).includes(rawTarget ?? "")
-    ? (rawTarget as AuditTargetType)
-    : undefined
+  const action = validateEnumParam(rawAction, ACTION_VALUES)
+  const targetType = validateEnumParam(rawTarget, TARGET_VALUES)
 
   // where 동적 조립 — Day 16 의 *빈 객체 spread* 패턴.
   // 값 없으면 *키 자체가 안 들어감* → Prisma 는 해당 컬럼 필터 적용 안 함.
@@ -165,7 +137,7 @@ export default async function AuditLogPage({
           액션
         </span>
         <Link
-          href={buildLogUrl({ targetType })}
+          href={buildUrl("/admin/audit-log", { targetType })}
           className={chipClass(!action)}
         >
           전체
@@ -173,7 +145,7 @@ export default async function AuditLogPage({
         {ACTION_VALUES.map((a) => (
           <Link
             key={a}
-            href={buildLogUrl({ action: a, targetType })}
+            href={buildUrl("/admin/audit-log", { action: a, targetType })}
             className={chipClass(action === a)}
           >
             {ACTION_LABEL[a]}
@@ -185,7 +157,7 @@ export default async function AuditLogPage({
           대상
         </span>
         <Link
-          href={buildLogUrl({ action })}
+          href={buildUrl("/admin/audit-log", { action })}
           className={chipClass(!targetType)}
         >
           전체
@@ -193,7 +165,7 @@ export default async function AuditLogPage({
         {TARGET_VALUES.map((t) => (
           <Link
             key={t}
-            href={buildLogUrl({ action, targetType: t })}
+            href={buildUrl("/admin/audit-log", { action, targetType: t })}
             className={chipClass(targetType === t)}
           >
             {TARGET_LABEL[t]}

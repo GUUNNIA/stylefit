@@ -12,19 +12,26 @@ import Link from "next/link"
 import { requireAdmin } from "@/app/lib/dal"
 import { prisma } from "@/app/lib/prisma"
 import { formatDuration } from "@/app/lib/format"
+import { ServiceVerificationStatus } from "@prisma/client"
+import { buildUrl, validateEnumParam } from "@/app/lib/url-filter"
 import {
   approveServiceAction,
   revertServiceAction,
 } from "./actions"
 import RejectForm from "./RejectForm"
 
-// URL ?status= 값 화이트리스트. 다른 값 들어오면 default "pending".
-const STATUS_OPTIONS = [
-  { value: "pending", label: "검증 대기" },
-  { value: "approved", label: "승인됨" },
-  { value: "rejected", label: "반려됨" },
-] as const
-type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
+// 라벨 매핑 (Day 19 정리 — Day 18 ACTION_LABEL 패턴 일관).
+// Day 17 의 ServiceVerificationStatus enum 활용 → 값은 enum, 라벨은 별 Record.
+const STATUS_LABEL: Record<ServiceVerificationStatus, string> = {
+  pending: "검증 대기",
+  approved: "승인됨",
+  rejected: "반려됨",
+}
+
+// 탭 map 용 + validateEnumParam 화이트리스트. Object.values 는 unknown[] 추론이라 명시 타입.
+const STATUS_VALUES: readonly ServiceVerificationStatus[] = Object.values(
+  ServiceVerificationStatus
+)
 
 export default async function AdminServicesPage({
   searchParams,
@@ -35,11 +42,9 @@ export default async function AdminServicesPage({
   await requireAdmin("/admin/services")
 
   const { status: rawStatus } = await searchParams
-  // 화이트리스트 검증 — 외부 값을 *그대로 신뢰 X*
-  const isValid = STATUS_OPTIONS.some((o) => o.value === rawStatus)
-  const status: StatusFilter = isValid
-    ? (rawStatus as StatusFilter)
-    : "pending"
+  // 화이트리스트 검증 — 외부 값을 *그대로 신뢰 X*. 잘못된 값이면 default "pending".
+  const status =
+    validateEnumParam(rawStatus, STATUS_VALUES) ?? ServiceVerificationStatus.pending
 
   // 필터된 목록 + 탭 카운트 동시 페치 (병렬)
   const [services, counts] = await Promise.all([
@@ -67,19 +72,20 @@ export default async function AdminServicesPage({
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
       <h1 className="mb-8 text-3xl font-bold tracking-tight">서비스 검증</h1>
 
-      {/* 상태 필터 탭 — URL 쿼리 기반. Link 클릭으로 페이지 전환 (Server fetch) */}
+      {/* 상태 필터 탭 — URL 쿼리 기반. Link 클릭으로 페이지 전환 (Server fetch).
+          탭 스타일이라 url-filter 의 chipClass 안 씀 — 디자인 달라 *얕은 추출* 의 보존 영역. */}
       <div className="mb-6 flex gap-1 border-b border-zinc-200">
-        {STATUS_OPTIONS.map((o) => (
+        {STATUS_VALUES.map((s) => (
           <Link
-            key={o.value}
-            href={`/admin/services?status=${o.value}`}
+            key={s}
+            href={buildUrl("/admin/services", { status: s })}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
-              status === o.value
+              status === s
                 ? "border-b-2 border-zinc-900 text-zinc-900"
                 : "text-zinc-500 hover:text-zinc-900"
             }`}
           >
-            {o.label} ({countByStatus[o.value] ?? 0})
+            {STATUS_LABEL[s]} ({countByStatus[s] ?? 0})
           </Link>
         ))}
       </div>

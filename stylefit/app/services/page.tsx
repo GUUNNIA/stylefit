@@ -14,26 +14,8 @@ import ServiceCard, { type ServiceCardData } from "@/app/components/ServiceCard"
 import SuccessBanner from "@/app/components/SuccessBanner"
 import {
   SERVICE_CATEGORIES,
-  type ServiceCategory,
 } from "@/app/lib/service-categories"
-
-// 칩 스타일 — 활성/비활성 두 상태. 16-2 의 *전체* + 5 카테고리 = 6번 사용처라 헬퍼로 추출.
-// 더 많아지면 별도 컴포넌트로, 지금은 한 줄 함수면 충분.
-const chipClass = (isActive: boolean) =>
-  isActive
-    ? "rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white"
-    : "rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
-
-// /services URL 빌더 (Day 16 — 4단계) — 칩 클릭 시 *기존 q 유지*, 전체 칩은 category 만 제거.
-// URLSearchParams 가 *한글·공백·"·" 자동 인코딩* → encodeURIComponent 명시 불필요.
-// 값이 *truthy 일 때만* set → 빈 쿼리 안 남김 (`/services?category=` 같은 깨끗 아닌 URL 차단).
-function buildSearchUrl(opts: { category?: string; q?: string }): string {
-  const params = new URLSearchParams()
-  if (opts.category) params.set("category", opts.category)
-  if (opts.q) params.set("q", opts.q)
-  const qs = params.toString()
-  return qs ? `/services?${qs}` : "/services"
-}
+import { buildUrl, chipClass, validateEnumParam } from "@/app/lib/url-filter"
 
 // 세 쿼리가 같은 relation을 include함 → 한 곳에서 정의하고 재사용 (DRY)
 const SECTION_INCLUDE = {
@@ -56,15 +38,10 @@ export default async function ServicesPage({
 }) {
   const { welcome, category: rawCategory, q: rawQ } = await searchParams
 
-  // 카테고리 화이트리스트 검증 (Day 16) — Day 14 STATUS_OPTIONS 패턴 일관.
+  // 카테고리 화이트리스트 검증 (Day 16 → Day 19 추출) — Day 14·18 과 같은 패턴.
   // *외부 입력* 을 그대로 Prisma where 에 넣으면 *임의 값* 가능 → 명시 목록과 매칭만 통과.
-  // 빈 문자열·undefined·임의 값 모두 isValid=false → 필터 *적용 안 함* (전체 노출).
-  const isValidCategory = (SERVICE_CATEGORIES as readonly string[]).includes(
-    rawCategory ?? ""
-  )
-  const category: ServiceCategory | undefined = isValidCategory
-    ? (rawCategory as ServiceCategory)
-    : undefined
+  // 빈 문자열·undefined·임의 값 모두 undefined → 필터 *적용 안 함* (전체 노출).
+  const category = validateEnumParam(rawCategory, SERVICE_CATEGORIES)
 
   // 검색어 sanitize (Day 16) — *이중 방어*:
   //   1) UI maxLength=100 (1차)
@@ -179,17 +156,16 @@ export default async function ServicesPage({
         </div>
       </form>
 
-      {/* 카테고리 칩 (Day 16) — Link 기반, URL 의 category 쿼리가 source of truth.
-          buildSearchUrl 헬퍼로 *기존 q 유지* (16-4 보강) — 칩 클릭해도 검색어 안 날아감.
-          *전체* 칩 = category 만 제거, q 는 유지. */}
+      {/* 카테고리 칩 (Day 16 → Day 19 추출) — Link 기반, URL 의 category 쿼리가 source of truth.
+          buildUrl 로 *기존 q 유지* — 칩 클릭해도 검색어 안 날아감. *전체* 칩 = category 만 제거, q 는 유지. */}
       <div className="mb-10 flex flex-wrap gap-2">
-        <Link href={buildSearchUrl({ q })} className={chipClass(!category)}>
+        <Link href={buildUrl("/services", { q })} className={chipClass(!category)}>
           전체
         </Link>
         {SERVICE_CATEGORIES.map((c) => (
           <Link
             key={c}
-            href={buildSearchUrl({ category: c, q })}
+            href={buildUrl("/services", { category: c, q })}
             className={chipClass(category === c)}
           >
             {c}
