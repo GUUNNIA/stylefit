@@ -16,6 +16,7 @@ import { requireSellerProfile } from "@/app/lib/dal"
 import { SERVICE_CATEGORIES } from "@/app/lib/service-categories"
 import { z } from "zod"
 import { redirect } from "next/navigation"
+import { SellerActivity } from "@prisma/client"
 
 // 소요 시간을 *세 단위*(일/시간/분)로 받음. DB는 단일 컬럼(durationMinutes)이라 합산 저장.
 // 클라 input의 max(시간 23, 분 59)와 서버 검증을 *둘 다* 둠 — 클라 우회 시 서버에서 차단.
@@ -119,20 +120,33 @@ export async function createServiceAction(
   const durationMinutes =
     result.data.days * 1440 + result.data.hours * 60 + result.data.minutes
 
-  await prisma.service.create({
-    data: {
-      sellerProfileId: sellerProfile.id, // ← 서버 결정. 클라가 못 조작.
-      title: result.data.title,
-      description: result.data.description,
-      serviceType: result.data.serviceType,
-      category: result.data.category,
-      price: result.data.price,
-      durationMinutes,
-      // verificationStatus는 schema default "pending"으로 자동 — 명시 안 함
-    },
+  // Day 20: $transaction interactive callback — *참조 의존성* (방금 만든 service.id 를 log 에 써야)
+  //   - sequential array 로는 두 query 간 참조 못 함
+  //   - 두 작업이 *같은 트랜잭션* 안에서 함께 commit 되도록
+  //   - redirect 는 *transaction 밖*  — throw 라 안에서 호출 시 전체 rollback
+  await prisma.$transaction(async (tx) => {
+    const service = await tx.service.create({
+      data: {
+        sellerProfileId: sellerProfile.id, // ← 서버 결정. 클라가 못 조작.
+        title: result.data.title,
+        description: result.data.description,
+        serviceType: result.data.serviceType,
+        category: result.data.category,
+        price: result.data.price,
+        durationMinutes,
+        // verificationStatus는 schema default "pending"으로 자동 — 명시 안 함
+      },
+    })
+    await tx.sellerActivityLog.create({
+      data: {
+        sellerProfileId: sellerProfile.id,
+        activity: SellerActivity.created,
+        serviceId: service.id, // ← 위 create 결과 참조 — sequential array 로는 불가능
+      },
+    })
   })
 
   // redirect는 throw → 함수가 끝나지 않고 자동 이동
-  // (try/catch 안에서 호출하면 무효화되니 주의)
+  // (transaction callback 안에서 호출 X — throw 가 전체 rollback 신호로 오용됨)
   redirect("/seller/services")
 }

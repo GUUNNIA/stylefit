@@ -51,6 +51,10 @@ async function main() {
   // user.deleteMany 가 실패하지 않음. 시드는 audit log 생성 안 함 (비어있는 채로 시작).
   await prisma.auditLog.deleteMany()
 
+  // 셀러 활동 이력 (Day 20) — SellerProfile/Service FK Restrict.
+  // sellerProfile/service.deleteMany 보다 먼저 비워야 함.
+  await prisma.sellerActivityLog.deleteMany()
+
   // 메시지 영역
   await prisma.message.deleteMany()
   await prisma.messageThread.deleteMany()

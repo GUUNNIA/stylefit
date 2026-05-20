@@ -22,6 +22,7 @@
 import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { revalidatePath } from "next/cache"
+import { SellerActivity } from "@prisma/client"
 
 export async function setServiceVisibilityAction(formData: FormData) {
   // 1) 권한 — 본인 셀러 + 승인 상태
@@ -36,14 +37,30 @@ export async function setServiceVisibilityAction(formData: FormData) {
   //    토글이 아니라 명시 값이라 *현재 상태 read* 가 필요 없음 (race-safe).
   const nextActive = formData.get("nextActive") === "true"
 
-  // 4) 본인 소유 + 상태 변경 동시 처리.
-  //    updateMany 복합 where — 남의 서비스 ID 조작 시 count=0 으로 조용히 실패.
-  await prisma.service.updateMany({
-    where: {
-      id: serviceId,
-      sellerProfileId: sellerProfile.id,
-    },
-    data: { isActive: nextActive },
+  // 4) 본인 소유 + 상태 변경 + 활동 로그 동시 처리 (Day 20)
+  //    interactive callback — *분기 의존성* (count > 0 일 때만 log create).
+  //    race-safe 정신 유지 — 현재 isActive read X. 같은 값 set 도 본인 액션이라 *기록* (셀러 의도 추적).
+  //    metadata.to = nextActive — 방향 보존. 조회 화면에서 "활성화/비활성화" 표시에 사용.
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.service.updateMany({
+      where: {
+        id: serviceId,
+        sellerProfileId: sellerProfile.id,
+      },
+      data: { isActive: nextActive },
+    })
+
+    // count > 0 — 본인 소유 서비스. 활동 로그 추가. (남의 ID 조작은 *유령 로그* 안 만듦)
+    if (count > 0) {
+      await tx.sellerActivityLog.create({
+        data: {
+          sellerProfileId: sellerProfile.id,
+          activity: SellerActivity.toggled,
+          serviceId,
+          metadata: { to: nextActive },
+        },
+      })
+    }
   })
 
   // 5) 캐시 무효화 — 셀러 본인 목록 + 구매자 공개 목록(숨겨진 서비스 사라져야 함)

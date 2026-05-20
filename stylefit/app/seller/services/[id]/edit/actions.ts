@@ -19,7 +19,7 @@ import { SERVICE_CATEGORIES } from "@/app/lib/service-categories"
 import { z } from "zod"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
-import { ServiceVerificationStatus } from "@prisma/client"
+import { ServiceVerificationStatus, SellerActivity } from "@prisma/client"
 
 // 등록 폼 Zod 와 동일 — 같은 비즈니스 규칙 (검증 통과 == 합법한 서비스 데이터).
 // 동일 스키마를 두 액션에서 *복붙* 하는 형태. 15-5 에서 추출 여부 판단.
@@ -116,29 +116,49 @@ export async function updateServiceAction(
   const durationMinutes =
     result.data.days * 1440 + result.data.hours * 60 + result.data.minutes
 
-  // 4) 본인 소유 + 수정 동시 처리 — updateMany 의 복합 where.
-  //    update 는 단일 unique where 만 받지만 updateMany 는 자유. 조건에 sellerProfileId 끼워
-  //    *남의 서비스 ID 조작* 시도를 한 쿼리로 차단.
-  //    수정 시 항상 *pending 으로 되돌림* + 반려 사유 클리어 — 재검증 강제 (Day 14 정신).
-  const { count } = await prisma.service.updateMany({
-    where: {
-      id: serviceId,
-      sellerProfileId: sellerProfile.id,
-    },
-    data: {
-      title: result.data.title,
-      description: result.data.description,
-      serviceType: result.data.serviceType,
-      category: result.data.category,
-      price: result.data.price,
-      durationMinutes,
-      verificationStatus: ServiceVerificationStatus.pending,
-      rejectionReason: null,
-    },
+  // 4) 본인 소유 + 수정 + 활동 로그 동시 처리 (Day 20)
+  //    interactive callback transaction — *분기 의존성* (count > 0 일 때만 log create)
+  //    sequential array 로는 *count 결과로 두 번째 query 결정* 불가능.
+  //    count 는 return 값으로 *transaction 밖* 으로 — redirect 분기에 사용.
+  //
+  //    updateMany 의 복합 where — *남의 서비스 ID 조작* 시 count=0 으로 조용히 실패.
+  //    수정 시 항상 *pending 되돌림* + 반려 사유 클리어 — 재검증 강제 (Day 14 정신).
+  const count = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.service.updateMany({
+      where: {
+        id: serviceId,
+        sellerProfileId: sellerProfile.id,
+      },
+      data: {
+        title: result.data.title,
+        description: result.data.description,
+        serviceType: result.data.serviceType,
+        category: result.data.category,
+        price: result.data.price,
+        durationMinutes,
+        verificationStatus: ServiceVerificationStatus.pending,
+        rejectionReason: null,
+      },
+    })
+
+    // count > 0 — 본인 소유 서비스 진짜 수정됨. 활동 로그 추가.
+    // count === 0 — 남의 ID 조작 시도. log 안 만듦 (*유령 로그* 방지).
+    if (count > 0) {
+      await tx.sellerActivityLog.create({
+        data: {
+          sellerProfileId: sellerProfile.id,
+          activity: SellerActivity.updated,
+          serviceId,
+        },
+      })
+    }
+
+    return count
   })
 
   // count === 0 이면 본인 소유 아닌 ID 였거나 이미 삭제된 서비스.
   // 조용히 목록으로 — *어떤 ID 가 존재하는지* 정보 누설 안 함.
+  // (transaction 밖에서 redirect — 안에서 호출 시 throw 가 전체 rollback 신호로 오용됨)
   if (count === 0) {
     redirect("/seller/services")
   }

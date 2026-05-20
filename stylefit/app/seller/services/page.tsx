@@ -43,12 +43,20 @@ export default async function SellerServicesPage() {
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">내 서비스</h1>
-        <Link
-          href="/seller/services/new"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
-        >
-          + 새 서비스 등록
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/seller/activity-log"
+            className="text-sm text-zinc-600 hover:text-zinc-900 hover:underline"
+          >
+            활동 이력
+          </Link>
+          <Link
+            href="/seller/services/new"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
+          >
+            + 새 서비스 등록
+          </Link>
+        </div>
       </div>
 
       {myServices.length === 0 ? (

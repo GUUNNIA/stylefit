@@ -53,6 +53,7 @@ model SellerProfile {
   bookings    Booking[]                                   // 셀러가 받은 예약 목록
   reviews     Review[]                                    // 셀러가 받은 후기 목록
   messageThreads MessageThread[]                          // 셀러로서 참여한 대화방 목록
+  activityLogs SellerActivityLog[]                        // 이 셀러의 활동 이력 (Day 20)
 
   @@map("seller_profiles")
 }
@@ -78,6 +79,7 @@ model Service {
   sellerProfile   SellerProfile  @relation(fields: [sellerProfileId], references: [id]) // 셀러 프로필과 관계
   bookings        Booking[]                                   // 이 서비스에 대한 예약 목록
   collections     ServiceCollection[]                         // 이 서비스가 속한 컬렉션들 (다대다, Day 12)
+  activityLogs    SellerActivityLog[]                         // 이 서비스에 대한 셀러 활동 이력 (Day 20)
 
   @@map("services")
 }
@@ -217,6 +219,36 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// ───────────── 셀러 활동 이력 (Day 20) ─────────────
+
+// 셀러 본인의 활동 events. AuditLog 와 *의도적으로 분리* — 의미·권한·UX 가 다른 도메인이라.
+//   - AuditLog: admin 의 *심사 추적*. 운영자만 조회.
+//   - SellerActivityLog: 셀러의 *내 서비스 변경 이력*. 셀러는 *자기 것만* 조회.
+//
+// 설계 차이 (vs AuditLog):
+//   - actor 가 sellerProfileId 로 명확 — *셀러 본인이 본인 액션 기록*
+//   - target 이 단일 도메인 (Service) → polymorphic 안 필요. FK 가능.
+//   - 인덱스 (sellerProfileId, createdAt) 복합 — *셀러별 최신순 조회* 가 핵심 쿼리라 단일 createdAt
+//     인덱스로는 부족. 셀러별 필터링 + 정렬을 한 번에 활용.
+//   - FK 모두 default Restrict — 이력 보존 (Day 18 정신).
+model SellerActivityLog {
+  id              Int             @id @default(autoincrement())
+  sellerProfileId Int                                            // 활동의 주체 (셀러)
+  activity        SellerActivity                                 // 무엇을 했나
+  serviceId       Int                                            // 어떤 서비스에 대한 활동
+  metadata        Json?                                          // 부가 컨텍스트 (toggled 의 to: bool 등)
+  createdAt       DateTime        @default(now())
+
+  sellerProfile   SellerProfile   @relation(fields: [sellerProfileId], references: [id])
+  service         Service         @relation(fields: [serviceId], references: [id])
+
+  // 복합 인덱스 — `/seller/activity-log` 의 핵심 쿼리:
+  //   where: { sellerProfileId } orderBy: { createdAt desc }
+  // 단일 createdAt 인덱스로는 *전체 시간순* 만 빠르고 셀러별 필터 후 정렬은 부분 활용에 그침.
+  @@index([sellerProfileId, createdAt])
+  @@map("seller_activity_logs")
+}
+
 // ───────────── Enums (Day 17) ─────────────
 
 // 운영자가 서비스 등록을 검증한 결과.
@@ -276,4 +308,16 @@ enum AuditAction {
 enum AuditTargetType {
   Seller
   Service
+}
+
+// ───────────── Enums (Day 20) ─────────────
+
+// 셀러 활동의 종류. AuditAction (approved/rejected/reverted) 과 *의미 다른 도메인* 이라 분리.
+//   - created: 새 서비스 등록
+//   - updated: 기존 서비스 수정 (재검증 강제 — Day 15 정신)
+//   - toggled: isActive 토글 (방향은 metadata.to 에 기록)
+enum SellerActivity {
+  created
+  updated
+  toggled
 }
