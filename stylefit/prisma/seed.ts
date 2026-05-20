@@ -47,6 +47,10 @@ async function main() {
   // 1) 기존 데이터 정리 (영역별 그룹화 — FK 역순과 자연스럽게 일치)
   //    매 실행마다 깨끗한 상태에서 시작하기 위함
 
+  // 감사 로그 (Day 18) — User FK 가 ON DELETE RESTRICT 라 *가장 먼저* 비워야
+  // user.deleteMany 가 실패하지 않음. 시드는 audit log 생성 안 함 (비어있는 채로 시작).
+  await prisma.auditLog.deleteMany()
+
   // 메시지 영역
   await prisma.message.deleteMany()
   await prisma.messageThread.deleteMany()

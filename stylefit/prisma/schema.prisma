@@ -29,6 +29,7 @@ model User {
   reviews         Review[]    @relation("ReviewBuyer")   // 구매자가 작성한 후기 목록
   messageThreads  MessageThread[] @relation("ThreadBuyer") // 구매자로서 참여한 대화방 목록
   sentMessages    Message[]   @relation("MessageSender")   // 발신한 메시지 목록
+  auditLogs       AuditLog[]                              // 이 user 가 actor 인 감사 로그 (Day 18)
 
   @@map("users")
 }
@@ -189,6 +190,33 @@ model Message {
   @@map("messages")
 }
 
+// ───────────── 감사 로그 (Day 18) ─────────────
+
+// 운영자(admin) 액션의 *이력 events*. snapshot 아닌 *추가 전용* 테이블 — 한번 들어가면 안 지움.
+//
+// 설계 포인트:
+//   - (action, targetType) 조합으로 의미 분리 — Day 17 의 enum 도메인 분리의 *반대* 케이스.
+//     값(approved/rejected/reverted)은 같고 도메인(Seller/Service)만 다르면 *공통 enum* 으로 모음.
+//   - targetId 는 FK 없이 Int — Seller/Service polymorphic 이라 single-table FK 안 맞음.
+//     코드 측에서 (targetType, targetId) 로 resolve.
+//   - actor FK 는 *default Restrict* — audit log 가 있는 user 삭제 불가 (감사 정책).
+//   - metadata Json? — rejected 사유 같은 추가 컨텍스트. approved/reverted 는 null.
+model AuditLog {
+  id          Int              @id @default(autoincrement())
+  actorId     Int                                          // 액션 수행자 (admin)
+  action      AuditAction                                  // 무엇을 했나
+  targetType  AuditTargetType                              // 대상 종류
+  targetId    Int                                          // 대상의 id (도메인 가변 — FK 없음)
+  metadata    Json?                                        // 추가 컨텍스트 (예: { rejectionReason })
+  createdAt   DateTime         @default(now())
+
+  actor       User             @relation(fields: [actorId], references: [id])
+
+  // 최신순 조회의 핵심 — `/admin/audit-log` 가 자주 두드림. 필터 인덱스는 Day 19 추출 이후 판단.
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
 // ───────────── Enums (Day 17) ─────────────
 
 // 운영자가 서비스 등록을 검증한 결과.
@@ -231,4 +259,21 @@ enum BookingStatus {
 enum UserRole {
   user
   admin
+}
+
+// ───────────── Enums (Day 18) ─────────────
+
+// 감사 로그의 액션 종류. targetType 과 *조합* 으로 의미 완성 (단독으론 불완전).
+// Day 17 의 enum 도메인 분리 (Seller/ServiceVerificationStatus) 와 *반대* 결 —
+// *값이 같고 도메인만 다른* 경우는 *공통 enum 으로 모으는 게 자연*.
+enum AuditAction {
+  approved
+  rejected
+  reverted
+}
+
+// 감사 로그의 대상 도메인. 미래에 Booking/Review 등 추가 가능 — *우리 코드 안에서만* 확장.
+enum AuditTargetType {
+  Seller
+  Service
 }
