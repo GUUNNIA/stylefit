@@ -21,7 +21,8 @@ model User {
   isActive        Boolean  @default(true)                  // 계정 활성 여부
   // 권한 모델 (Day 14) — admin 만 /admin/* 화면 접근 가능.
   // default "user" 이라 신규 가입은 자동으로 일반 사용자. admin은 *명시적 부여* 필요.
-  role            String   @default("user")                // user / admin
+  // Day 17: String → enum
+  role            UserRole @default(user)
 
   sellerProfile   SellerProfile?                         // 셀러 프로필 1:1 관계
   bookings        Booking[]   @relation("BookingBuyer")  // 구매자 예약 목록
@@ -37,7 +38,8 @@ model SellerProfile {
   userId            Int      @unique                            // 연결된 사용자 ID, 1:1 관계
   bio               String?                                  // 셀러 소개글
   specialty         String?                                  // 셀러 전문 분야
-  verificationStatus String  @default("pending")             // 셀러 인증 상태 (pending/approved/rejected)
+  // Day 17: String → enum (Service.verificationStatus 와 *값은 같지만 도메인 분리*)
+  verificationStatus SellerVerificationStatus @default(pending)
   rejectionReason   String?                                   // 반려 사유 (rejected일 때 작성됨, 셀러에게 표시) — Day 14
   instagramHandle   String?                                  // 인스타그램 핸들
   portfolioUrls     String?                                  // 포트폴리오 URL 배열을 JSON 문자열로 저장
@@ -59,14 +61,15 @@ model Service {
   sellerProfileId Int                                        // 등록한 셀러 프로필 ID
   title           String                                     // 서비스 제목
   description     String                                     // 서비스 상세 설명
-  serviceType     String                                     // 서비스 형태 (online 또는 offline)
+  serviceType     ServiceType                                // 서비스 형태 (Day 17: String → enum)
   category        String                                     // 서비스 카테고리
   price           Int                                        // 서비스 가격 (원 단위)
   durationMinutes Int                                        // 서비스 소요 시간 (분)
   isActive        Boolean        @default(true)               // 서비스 활성 여부 (셀러가 토글)
   // 운영자 검증 상태 (Day 13). 신규 등록은 default pending → /services 노출 안 됨.
   // 시드 데이터는 명시적으로 "approved" 지정 (단 Day 14 admin 검증용 *pending 2개*는 예외).
-  verificationStatus String     @default("pending")          // pending / approved / rejected
+  // Day 17: String → enum 으로 교체 (DB 수준 타입 안전성)
+  verificationStatus ServiceVerificationStatus @default(pending)
   rejectionReason String?                                    // 반려 사유 (rejected일 때 작성됨, 셀러에게 표시) — Day 14
   createdAt       DateTime       @default(now())              // 생성 시각
   updatedAt       DateTime       @updatedAt                  // 수정 시 자동 업데이트
@@ -121,7 +124,8 @@ model Booking {
   sellerProfileId   Int                                                  // 중복 저장된 셀러 프로필 ID
   preferredDatetime DateTime                                             // 구매자가 원한 시간
   confirmedDatetime DateTime?                                            // 셀러가 확정한 시간
-  status            String         @default("pending")                  // 예약 상태 (pending/confirmed/completed/cancelled)
+  // Day 17: String → enum
+  status            BookingStatus  @default(pending)
   buyerMemo         String?                                               // 구매자 메모
   createdAt         DateTime       @default(now())                         // 생성 시각
   updatedAt         DateTime       @updatedAt                             // 수정 시 자동 업데이트
@@ -183,4 +187,48 @@ model Message {
   sender    User          @relation("MessageSender", fields: [senderId], references: [id]) // 발신자와 관계
 
   @@map("messages")
+}
+
+// ───────────── Enums (Day 17) ─────────────
+
+// 운영자가 서비스 등록을 검증한 결과.
+// pending 은 신규 등록 default — /services 에 노출되지 않음.
+// approved 만 노출 대상, rejected 는 셀러 화면에서 사유와 함께 표시.
+enum ServiceVerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+// 운영자가 셀러(사람) 자격을 검증한 결과.
+// ServiceVerificationStatus 와 값은 같지만 *도메인이 다름* — 분리해서 정의.
+// 한쪽 도메인에 값이 추가되어도 다른 쪽이 흔들리지 않음.
+enum SellerVerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+// 서비스 제공 형태 — 온라인/오프라인.
+enum ServiceType {
+  online
+  offline
+}
+
+// 예약 진행 상태.
+// pending: 구매자 요청 후 셀러 확정 대기
+// confirmed: 셀러가 시간 확정
+// completed: 서비스 종료
+// cancelled: 취소
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+// 사용자 권한. admin 만 /admin/* 화면 접근.
+enum UserRole {
+  user
+  admin
 }

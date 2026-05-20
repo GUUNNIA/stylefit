@@ -1,7 +1,14 @@
 // 시드 스크립트: 빈 DB에 가짜 데이터를 채워 넣는 코드
 // 실행 명령: npx prisma db seed
 
-import { PrismaClient } from "@prisma/client"
+import {
+  PrismaClient,
+  ServiceVerificationStatus,
+  SellerVerificationStatus,
+  ServiceType,
+  BookingStatus,
+  UserRole,
+} from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 // Prisma 클라이언트: DB와 대화하는 도구
@@ -147,7 +154,7 @@ async function main() {
       userId: seller1.id,
       bio: "디자인 컨설팅 전문가입니다.",
       specialty: "디자인 컨설팅",
-      verificationStatus: "approved",
+      verificationStatus: SellerVerificationStatus.approved,
       approvedAt: new Date(),
     },
   })
@@ -156,7 +163,7 @@ async function main() {
       userId: seller2.id,
       bio: "웹사이트 제작 전문가입니다.",
       specialty: "웹사이트 제작",
-      verificationStatus: "approved",
+      verificationStatus: SellerVerificationStatus.approved,
       approvedAt: new Date(),
     },
   })
@@ -165,7 +172,7 @@ async function main() {
       userId: seller3.id,
       bio: "영상 편집·제작 전문가입니다.",
       specialty: "영상 편집·제작",
-      verificationStatus: "approved",
+      verificationStatus: SellerVerificationStatus.approved,
       approvedAt: new Date(),
     },
   })
@@ -175,7 +182,7 @@ async function main() {
       userId: seller4.id,
       bio: "블로그·콘텐츠 운영 전문가입니다.",
       specialty: "블로그·콘텐츠 운영",
-      verificationStatus: "pending", // 미승인 — 어드민 화면 검증용
+      verificationStatus: SellerVerificationStatus.pending, // 미승인 — 어드민 화면 검증용
       // approvedAt: 미승인 상태라 null
     },
   })
@@ -191,7 +198,7 @@ async function main() {
       sellerProfileId: profile1.id,
       title: "포트폴리오 리뷰 1:1",
       description: "디자이너 포트폴리오를 1:1로 리뷰하고 개선점을 정리해드립니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "디자인 컨설팅",
       price: 50000,
       durationMinutes: 60,
@@ -202,7 +209,7 @@ async function main() {
       sellerProfileId: profile1.id,
       title: "디자인 피드백 패키지",
       description: "작업물 3개를 받아 상세 피드백 문서로 전달합니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "디자인 컨설팅",
       price: 80000,
       durationMinutes: 90,
@@ -213,7 +220,7 @@ async function main() {
       sellerProfileId: profile1.id,
       title: "1:1 디자인 멘토링",
       description: "커리어·작업 고민을 1:1로 풀어드립니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "디자인 컨설팅",
       price: 100000,
       durationMinutes: 90,
@@ -226,7 +233,7 @@ async function main() {
       sellerProfileId: profile2.id,
       title: "랜딩 페이지 제작",
       description: "단일 페이지 랜딩 사이트를 디자인+개발해드립니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "웹사이트 제작",
       price: 300000,
       durationMinutes: 2880, // 2일 (24시간×2×60)
@@ -237,7 +244,7 @@ async function main() {
       sellerProfileId: profile2.id,
       title: "회사 소개 사이트 (5p)",
       description: "5페이지 분량의 회사 소개 사이트 제작.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "웹사이트 제작",
       price: 800000,
       durationMinutes: 7200, // 5일
@@ -248,7 +255,7 @@ async function main() {
       sellerProfileId: profile2.id,
       title: "디자인+개발 패키지",
       description: "기획부터 개발·배포까지 전 과정을 함께합니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "웹사이트 제작",
       price: 1500000,
       durationMinutes: 14400, // 10일
@@ -261,7 +268,7 @@ async function main() {
       sellerProfileId: profile3.id,
       title: "유튜브 영상 편집 (10분)",
       description: "10분 내외의 유튜브 영상 컷편집·자막 작업.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "영상 편집",
       price: 150000,
       durationMinutes: 1440, // 1일
@@ -272,7 +279,7 @@ async function main() {
       sellerProfileId: profile3.id,
       title: "1분 광고 영상 제작",
       description: "콘셉트 기획부터 제작까지 1분 광고 영상.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "영상 제작",
       price: 500000,
       durationMinutes: 4320, // 3일
@@ -283,7 +290,7 @@ async function main() {
       sellerProfileId: profile3.id,
       title: "행사 현장 촬영+편집",
       description: "현장 촬영 후 1분 하이라이트 영상으로 편집.",
-      serviceType: "offline",
+      serviceType: ServiceType.offline,
       category: "영상 제작",
       price: 600000,
       durationMinutes: 2880, // 2일
@@ -304,7 +311,7 @@ async function main() {
       sellerProfileId: portfolioReview.sellerProfileId,
       preferredDatetime: daysFromNow(3), // 3일 후 희망
       confirmedDatetime: null, // 아직 미확정
-      status: "pending",
+      status: BookingStatus.pending,
       buyerMemo: "주중 저녁 가능합니다",
     },
   })
@@ -317,7 +324,7 @@ async function main() {
       sellerProfileId: landingPage.sellerProfileId,
       preferredDatetime: daysFromNow(7),
       confirmedDatetime: daysFromNow(7), // 동일 일정으로 확정
-      status: "confirmed",
+      status: BookingStatus.confirmed,
       buyerMemo: null,
     },
   })
@@ -330,7 +337,7 @@ async function main() {
       sellerProfileId: youtubeEdit.sellerProfileId,
       preferredDatetime: daysFromNow(-10),
       confirmedDatetime: daysFromNow(-10),
-      status: "completed",
+      status: BookingStatus.completed,
       buyerMemo: null,
     },
   })
@@ -343,7 +350,7 @@ async function main() {
       sellerProfileId: designMentoring.sellerProfileId,
       preferredDatetime: daysFromNow(-15),
       confirmedDatetime: daysFromNow(-15),
-      status: "completed",
+      status: BookingStatus.completed,
       buyerMemo: "포트폴리오 방향성 고민",
     },
   })
@@ -356,7 +363,7 @@ async function main() {
       sellerProfileId: companySite.sellerProfileId,
       preferredDatetime: daysFromNow(-20),
       confirmedDatetime: daysFromNow(-20),
-      status: "completed",
+      status: BookingStatus.completed,
       buyerMemo: "12월 오픈 목표입니다",
     },
   })
@@ -369,7 +376,7 @@ async function main() {
       sellerProfileId: adVideo.sellerProfileId,
       preferredDatetime: daysFromNow(5),
       confirmedDatetime: null,
-      status: "cancelled",
+      status: BookingStatus.cancelled,
       buyerMemo: null,
     },
   })
@@ -556,7 +563,7 @@ async function main() {
       passwordHash: seedPasswordHash,
       name: "GUUN",
       agreedTermsAt: new Date(),
-      role: "admin", // Day 14 — 본인 GUUN은 admin (admin·seller 겸직). 다른 시드 user는 default "user".
+      role: UserRole.admin, // Day 14 — 본인 GUUN은 admin (admin·seller 겸직). 다른 시드 user는 default "user".
     },
   })
 
@@ -565,7 +572,7 @@ async function main() {
       userId: me.id,
       bio: "디자인 전공자, 학습용 계정입니다.",
       specialty: "UI/UX 디자인",
-      verificationStatus: "approved",
+      verificationStatus: SellerVerificationStatus.approved,
       approvedAt: new Date(),
     },
   })
@@ -575,7 +582,7 @@ async function main() {
       sellerProfileId: myProfile.id,
       title: "UI/UX 디자인 1:1 컨설팅",
       description: "UI/UX 디자인 작업물·포트폴리오를 1:1로 컨설팅해드립니다.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "디자인 컨설팅",
       price: 70000,
       durationMinutes: 60,
@@ -588,7 +595,7 @@ async function main() {
   //     시드 데이터는 *운영 중인 검증된 서비스* 가정 → 일괄 approved.
   //     (각 service.create 호출에 verificationStatus를 일일이 박는 대신 한 번에 처리)
   await prisma.service.updateMany({
-    data: { verificationStatus: "approved" },
+    data: { verificationStatus: ServiceVerificationStatus.approved },
   })
   console.log("  모든 시드 service를 approved로 표시 완료")
 
@@ -601,7 +608,7 @@ async function main() {
       sellerProfileId: profile1.id, // 강지원이 추가 등록한 시뮬레이션
       title: "디자인 시스템 구축",
       description: "토큰·컴포넌트 라이브러리·문서까지 풀스택 디자인 시스템 구축.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "디자인 컨설팅",
       price: 2_000_000,
       durationMinutes: 14400, // 10일
@@ -613,7 +620,7 @@ async function main() {
       sellerProfileId: profile2.id, // 윤채린이 추가 등록한 시뮬레이션
       title: "포트폴리오 사이트 (1p)",
       description: "1페이지 분량의 디자이너·작가 포트폴리오 사이트.",
-      serviceType: "online",
+      serviceType: ServiceType.online,
       category: "웹사이트 제작",
       price: 200_000,
       durationMinutes: 1440, // 1일

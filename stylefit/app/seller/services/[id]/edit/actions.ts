@@ -19,6 +19,7 @@ import { SERVICE_CATEGORIES } from "@/app/lib/service-categories"
 import { z } from "zod"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { ServiceVerificationStatus } from "@prisma/client"
 
 // 등록 폼 Zod 와 동일 — 같은 비즈니스 규칙 (검증 통과 == 합법한 서비스 데이터).
 // 동일 스키마를 두 액션에서 *복붙* 하는 형태. 15-5 에서 추출 여부 판단.
@@ -131,7 +132,7 @@ export async function updateServiceAction(
       category: result.data.category,
       price: result.data.price,
       durationMinutes,
-      verificationStatus: "pending",
+      verificationStatus: ServiceVerificationStatus.pending,
       rejectionReason: null,
     },
   })

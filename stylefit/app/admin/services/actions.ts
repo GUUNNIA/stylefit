@@ -13,6 +13,7 @@
 import { prisma } from "@/app/lib/prisma"
 import { requireAdmin } from "@/app/lib/dal"
 import { revalidatePath } from "next/cache"
+import { ServiceVerificationStatus } from "@prisma/client"
 
 // 공통 — FormData에서 serviceId 안전하게 추출. 잘못된 값이면 null.
 function extractServiceId(formData: FormData): number | null {
@@ -30,7 +31,7 @@ export async function approveServiceAction(formData: FormData) {
   await prisma.service.update({
     where: { id: serviceId },
     data: {
-      verificationStatus: "approved",
+      verificationStatus: ServiceVerificationStatus.approved,
       rejectionReason: null,
     },
   })
@@ -49,7 +50,7 @@ export async function rejectServiceAction(formData: FormData) {
   await prisma.service.update({
     where: { id: serviceId },
     data: {
-      verificationStatus: "rejected",
+      verificationStatus: ServiceVerificationStatus.rejected,
       rejectionReason: reason,
     },
   })
@@ -66,7 +67,7 @@ export async function revertServiceAction(formData: FormData) {
   await prisma.service.update({
     where: { id: serviceId },
     data: {
-      verificationStatus: "pending",
+      verificationStatus: ServiceVerificationStatus.pending,
       rejectionReason: null,
     },
   })

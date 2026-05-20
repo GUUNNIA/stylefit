@@ -8,6 +8,7 @@
 import { prisma } from "@/app/lib/prisma"
 import { requireAdmin } from "@/app/lib/dal"
 import { revalidatePath } from "next/cache"
+import { SellerVerificationStatus } from "@prisma/client"
 
 function extractSellerProfileId(formData: FormData): number | null {
   const raw = formData.get("sellerProfileId")
@@ -24,7 +25,7 @@ export async function approveSellerAction(formData: FormData) {
   await prisma.sellerProfile.update({
     where: { id: sellerProfileId },
     data: {
-      verificationStatus: "approved",
+      verificationStatus: SellerVerificationStatus.approved,
       approvedAt: new Date(), // 승인 시각 기록
       rejectionReason: null,
     },
@@ -44,7 +45,7 @@ export async function rejectSellerAction(formData: FormData) {
   await prisma.sellerProfile.update({
     where: { id: sellerProfileId },
     data: {
-      verificationStatus: "rejected",
+      verificationStatus: SellerVerificationStatus.rejected,
       rejectionReason: reason,
       // approvedAt은 유지 (과거 승인 이력 추적용) — Day 15+에 정책 재검토 가능
     },
@@ -61,7 +62,7 @@ export async function revertSellerAction(formData: FormData) {
   await prisma.sellerProfile.update({
     where: { id: sellerProfileId },
     data: {
-      verificationStatus: "pending",
+      verificationStatus: SellerVerificationStatus.pending,
       rejectionReason: null,
       // approvedAt은 유지 (이력 추적)
     },
