@@ -18,6 +18,7 @@ import { requireAdmin } from "@/app/lib/dal"
 import { prisma } from "@/app/lib/prisma"
 import { AuditAction, AuditTargetType } from "@prisma/client"
 import { buildUrl, chipClass, validateEnumParam } from "@/app/lib/url-filter"
+import { extractMetadataString } from "@/app/lib/metadata"
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   approved: "승인",
@@ -35,14 +36,6 @@ const ACTION_BADGE: Record<AuditAction, string> = {
   approved: "bg-emerald-50 text-emerald-700",
   rejected: "bg-rose-50 text-rose-700",
   reverted: "bg-zinc-100 text-zinc-700",
-}
-
-// metadata 의 rejectionReason 만 표시. 그 외 키는 *학습 단계엔 무시* — 미래 키 추가 시 case 늘림.
-function extractRejectionReason(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== "object") return null
-  if (!("rejectionReason" in metadata)) return null
-  const reason = (metadata as { rejectionReason: unknown }).rejectionReason
-  return typeof reason === "string" ? reason : null
 }
 
 // 칩 그룹 map 용 — enum 의 런타임 값 목록. validateEnumParam 호출에도 재사용.
@@ -193,7 +186,7 @@ export default async function AuditLogPage({
             </thead>
             <tbody className="divide-y divide-zinc-100 text-zinc-900">
               {logs.map((log) => {
-                const reason = extractRejectionReason(log.metadata)
+                const reason = extractMetadataString(log.metadata, "rejectionReason")
                 return (
                   <tr key={log.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">

@@ -14,7 +14,8 @@ import { verifySession } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import SuccessBanner from "@/app/components/SuccessBanner"
 import { BookingStatus } from "@prisma/client"
-import CancelForm from "./CancelForm"
+import { cancelBookingAction } from "./actions"
+import ReasonForm from "@/app/components/ReasonForm"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장*.
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
@@ -175,7 +176,16 @@ export default async function BookingsPage({
                     학습 단계 정책: 셀러 확정 후엔 cancel X (별도 흐름 필요). */}
                 {b.status === BookingStatus.pending && (
                   <div className="border-t border-zinc-100 px-5 py-3">
-                    <CancelForm bookingId={b.id} />
+                    <ReasonForm
+                      action={cancelBookingAction}
+                      idName="bookingId"
+                      idValue={b.id}
+                      openLabel="취소하기"
+                      submitLabel="취소 확정"
+                      placeholder="취소 사유를 입력해 주세요. 셀러에게 표시됩니다."
+                      closeLabel="닫기"
+                      color="amber"
+                    />
                   </div>
                 )}
               </li>

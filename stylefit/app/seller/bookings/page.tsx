@@ -11,8 +11,8 @@ import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import { BookingStatus } from "@prisma/client"
-import { confirmBookingAction } from "./actions"
-import RejectBookingForm from "./RejectBookingForm"
+import { confirmBookingAction, rejectBookingAction } from "./actions"
+import ReasonForm from "@/app/components/ReasonForm"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장* (?? fallback 불필요).
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
@@ -172,7 +172,15 @@ export default async function SellerBookingsPage() {
                         확정
                       </button>
                     </form>
-                    <RejectBookingForm bookingId={b.id} />
+                    <ReasonForm
+                      action={rejectBookingAction}
+                      idName="bookingId"
+                      idValue={b.id}
+                      openLabel="거절하기"
+                      submitLabel="거절 확정"
+                      placeholder="거절 사유를 입력해 주세요. 구매자에게 표시됩니다."
+                      color="rose"
+                    />
                   </div>
                 )}
               </li>

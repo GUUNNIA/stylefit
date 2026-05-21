@@ -16,9 +16,10 @@ import { ServiceVerificationStatus } from "@prisma/client"
 import { buildUrl, validateEnumParam } from "@/app/lib/url-filter"
 import {
   approveServiceAction,
+  rejectServiceAction,
   revertServiceAction,
 } from "./actions"
-import RejectForm from "./RejectForm"
+import ReasonForm from "@/app/components/ReasonForm"
 
 // 라벨 매핑 (Day 19 정리 — Day 18 ACTION_LABEL 패턴 일관).
 // Day 17 의 ServiceVerificationStatus enum 활용 → 값은 enum, 라벨은 별 Record.
@@ -144,7 +145,15 @@ export default async function AdminServicesPage({
                         승인
                       </button>
                     </form>
-                    <RejectForm serviceId={s.id} />
+                    <ReasonForm
+                      action={rejectServiceAction}
+                      idName="serviceId"
+                      idValue={s.id}
+                      openLabel="반려하기"
+                      submitLabel="반려 확정"
+                      placeholder="반려 사유를 입력해 주세요. 셀러에게 표시됩니다."
+                      color="rose"
+                    />
                   </>
                 )}
                 {s.verificationStatus !== "pending" && (

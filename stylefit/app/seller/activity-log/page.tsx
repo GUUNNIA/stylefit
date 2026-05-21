@@ -18,6 +18,10 @@ import { requireSellerProfile } from "@/app/lib/dal"
 import { prisma } from "@/app/lib/prisma"
 import { SellerActivity } from "@prisma/client"
 import { buildUrl, chipClass, validateEnumParam } from "@/app/lib/url-filter"
+import {
+  extractMetadataBoolean,
+  extractMetadataString,
+} from "@/app/lib/metadata"
 
 // 칩 필터용 라벨 — toggled 는 한 단어 (방향은 badge 에서 분리 표시)
 const ACTIVITY_LABEL: Record<SellerActivity, string> = {
@@ -35,23 +39,6 @@ const ACTIVITY_BADGE: Record<SellerActivity, string> = {
   toggled: "bg-zinc-100 text-zinc-700",
   bookingConfirmed: "bg-emerald-50 text-emerald-700",
   bookingRejected: "bg-rose-50 text-rose-700",
-}
-
-// metadata.to (boolean) 만 추출. 외 키는 무시 — audit-log 의 extractRejectionReason 자매.
-function extractToggleTo(metadata: unknown): boolean | null {
-  if (!metadata || typeof metadata !== "object") return null
-  if (!("to" in metadata)) return null
-  const to = (metadata as { to: unknown }).to
-  return typeof to === "boolean" ? to : null
-}
-
-// metadata.rejectionReason 만 추출. Day 18 audit-log 의 동명 함수와 *복붙* (두 번째 사용처라 추출 X).
-// 세 번째 도달 시 [[feedback-extraction-threshold]] 따라 lib 으로 추출 후보.
-function extractRejectionReason(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== "object") return null
-  if (!("rejectionReason" in metadata)) return null
-  const reason = (metadata as { rejectionReason: unknown }).rejectionReason
-  return typeof reason === "string" ? reason : null
 }
 
 // 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음 (Day 19 학습).
@@ -137,7 +124,7 @@ export default async function SellerActivityLogPage({
                 // 다른 활동(created/updated) 은 metadata 안 봄.
                 const toggledTo =
                   log.activity === SellerActivity.toggled
-                    ? extractToggleTo(log.metadata)
+                    ? extractMetadataBoolean(log.metadata, "to")
                     : null
                 const badgeLabel =
                   toggledTo === true
@@ -156,7 +143,7 @@ export default async function SellerActivityLogPage({
                 // 다른 활동은 빈 셀. Day 18 audit-log 와 *동일 패턴*.
                 const reason =
                   log.activity === SellerActivity.bookingRejected
-                    ? extractRejectionReason(log.metadata)
+                    ? extractMetadataString(log.metadata, "rejectionReason")
                     : null
 
                 return (
