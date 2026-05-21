@@ -1,7 +1,6 @@
-// /admin/audit-log — 운영자 감사 로그 (Day 18)
+// /admin/audit-log — 운영자 감사 로그 (Day 18, Day 27 페이지네이션)
 //
 // admin 액션의 *이력 (events)* 표시. snapshot 아닌 *추가 전용* 데이터 — 한번 들어가면 안 지움.
-// 최신 50건만 표시 — 진짜 페이지네이션은 Day 19+ 분리.
 //
 // polymorphic target 표시 패턴 (Day 18 핵심 학습):
 //   AuditLog 의 (targetType, targetId) 가 Service 또는 SellerProfile 을 가리킴.
@@ -9,9 +8,10 @@
 //   대신 *종류별로 id 모아서 in:[...] 한 번씩* — 총 3 쿼리 (audit + Service in + Seller in).
 //   Map 으로 attach → 렌더 시 O(1) lookup.
 //
-// 필터:
-//   ?action=approved&targetType=Service — 두 축 동시. 한 축 변경 시 다른 축 *보존*.
-//   chipClass / buildUrl / validateEnumParam 은 Day 19 에 `app/lib/url-filter.ts` 로 추출 완료.
+// 필터 + 페이지네이션:
+//   ?action=approved&targetType=Service&page=2 — 세 축. 한 축 변경 시 다른 축 *보존*.
+//   chipClass / buildUrl / validateEnumParam 은 Day 19 에 `app/lib/url-filter.ts` 로 추출.
+//   page 파싱은 *얕은 인라인* — 세 번째 사용처 도달 시 헬퍼 추출 (Day 23 패턴).
 
 import Link from "next/link"
 import { requireAdmin } from "@/app/lib/dal"
@@ -43,18 +43,26 @@ const ACTION_BADGE: Record<AuditAction, string> = {
 const ACTION_VALUES: readonly AuditAction[] = Object.values(AuditAction)
 const TARGET_VALUES: readonly AuditTargetType[] = Object.values(AuditTargetType)
 
+// 페이지당 항목 수 — *모듈 상수* 로 한 곳에서 관리. UI 와 Prisma skip 둘 다 참조.
+const PAGE_SIZE = 20
+
 export default async function AuditLogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ action?: string; targetType?: string }>
+  searchParams: Promise<{ action?: string; targetType?: string; page?: string }>
 }) {
   await requireAdmin("/admin/audit-log")
 
-  const { action: rawAction, targetType: rawTarget } = await searchParams
+  const { action: rawAction, targetType: rawTarget, page: rawPage } = await searchParams
 
   // 화이트리스트 매칭 — 잘못된 값은 *조용히 undefined* (필터 미적용)
   const action = validateEnumParam(rawAction, ACTION_VALUES)
   const targetType = validateEnumParam(rawTarget, TARGET_VALUES)
+
+  // page 파싱 — 잘못된 값(음수/NaN/문자열) 은 *조용히 1*. validateEnumParam 의 number 버전.
+  // 학습 단계 = 인라인. 세 번째 사용처 도달 시 url-filter.ts 로 추출.
+  const parsedPage = rawPage ? parseInt(rawPage, 10) : 1
+  const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1
 
   // where 동적 조립 — Day 16 의 *빈 객체 spread* 패턴.
   // 값 없으면 *키 자체가 안 들어감* → Prisma 는 해당 컬럼 필터 적용 안 함.
@@ -65,15 +73,28 @@ export default async function AuditLogPage({
 
   const isFiltered = !!(action || targetType)
 
-  // 최신 50건 + actor 동시 fetch (FK relation 으로 자연 join)
-  const logs = await prisma.auditLog.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: {
-      actor: { select: { id: true, name: true, email: true } },
-    },
-  })
+  // findMany + count 동시 — Promise.all 로 두 쿼리 병렬.
+  // count 는 *필터 동일* (where) — 필터링된 전체 갯수가 진실.
+  const [logs, totalCount] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        actor: { select: { id: true, name: true, email: true } },
+      },
+    }),
+    prisma.auditLog.count({ where }),
+  ])
+
+  // 총 페이지 수 — 0건일 땐 1 페이지로 표시 (빈 상태 카피와 합).
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+
+  // page > totalPages 인 *stale URL / hack* 대응 — 표시만 마지막 페이지로 클램프.
+  // fetch 는 이미 잘못된 skip 으로 수행되어 결과는 빈 배열 → "이 조건의 로그가 없습니다" 가 자연스럽게 뜸.
+  // 깊은 정상화(마지막 페이지 데이터까지 보여주기) 는 count 를 먼저 받아야 해서 Promise.all 이 깨짐 — 학습 단계에선 보류.
+  const displayPage = Math.min(page, totalPages)
 
   // polymorphic target N+1 회피 — id 종류별로 모아서 한 번씩 fetch
   const serviceIds = logs
@@ -120,7 +141,7 @@ export default async function AuditLogPage({
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
       <h1 className="mb-2 text-3xl font-bold tracking-tight">감사 로그</h1>
       <p className="mb-6 text-sm text-zinc-600">
-        운영자 액션의 이력. {isFiltered ? `결과 ${logs.length}건` : `최신 ${logs.length}건 표시`}.
+        운영자 액션의 이력. {isFiltered ? `결과 ${totalCount}건` : `전체 ${totalCount}건`}.
       </p>
 
       {/* 필터 — 두 축 (action / targetType) 칩 그룹.
@@ -220,6 +241,77 @@ export default async function AuditLogPage({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* 페이지네이션 — totalPages 가 1 이하면 안 그림 (불필요).
+          page > 1 일 때만 ?page=N 을 URL 에 넣음 → 1 페이지는 깔끔한 URL.
+          필터 칩과 *축 보존* 동일 패턴 (action/targetType 같이 넘김). */}
+      {totalPages > 1 && (
+        <nav className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="text-zinc-600">
+            {(displayPage - 1) * PAGE_SIZE + 1}–{Math.min(displayPage * PAGE_SIZE, totalCount)} / {totalCount}건
+          </span>
+          <div className="flex flex-wrap items-center gap-1">
+            {displayPage > 1 ? (
+              <Link
+                href={buildUrl("/admin/audit-log", {
+                  action,
+                  targetType,
+                  page: displayPage - 1 > 1 ? String(displayPage - 1) : undefined,
+                })}
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+              >
+                ← 이전
+              </Link>
+            ) : (
+              <span
+                aria-disabled
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-300"
+              >
+                ← 이전
+              </span>
+            )}
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Link
+                key={p}
+                href={buildUrl("/admin/audit-log", {
+                  action,
+                  targetType,
+                  page: p > 1 ? String(p) : undefined,
+                })}
+                aria-current={p === displayPage ? "page" : undefined}
+                className={
+                  p === displayPage
+                    ? "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white"
+                    : "rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                }
+              >
+                {p}
+              </Link>
+            ))}
+
+            {displayPage < totalPages ? (
+              <Link
+                href={buildUrl("/admin/audit-log", {
+                  action,
+                  targetType,
+                  page: String(displayPage + 1),
+                })}
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+              >
+                다음 →
+              </Link>
+            ) : (
+              <span
+                aria-disabled
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-300"
+              >
+                다음 →
+              </span>
+            )}
+          </div>
+        </nav>
       )}
     </main>
   )
