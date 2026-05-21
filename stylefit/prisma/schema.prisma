@@ -130,7 +130,8 @@ model Booking {
   // Day 17: String → enum
   status            BookingStatus  @default(pending)
   buyerMemo         String?                                               // 구매자 메모
-  rejectionReason   String?                                               // 셀러 거절 시 사유 (Day 21). cancelled + 사유 있으면 *셀러 거절*, 없으면 *buyer 취소* 로 간접 구분
+  rejectionReason   String?                                               // 셀러 거절 시 사유 (Day 21).
+  cancellationReason String?                                              // buyer 취소 시 사유 (Day 22). 두 컬럼 *위치로* 누가 결정했는지 자동 구분 (Day 21 의 *enum 분리 X* 정신 일관)
   createdAt         DateTime       @default(now())                         // 생성 시각
   updatedAt         DateTime       @updatedAt                             // 수정 시 자동 업데이트
 

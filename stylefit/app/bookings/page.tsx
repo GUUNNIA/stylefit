@@ -14,6 +14,7 @@ import { verifySession } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import SuccessBanner from "@/app/components/SuccessBanner"
 import { BookingStatus } from "@prisma/client"
+import CancelForm from "./CancelForm"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장*.
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
@@ -86,19 +87,30 @@ export default async function BookingsPage({
       ) : (
         <ul className="space-y-4">
           {bookings.map((b) => {
-            // cancelled 의 *셀러 거절* vs *내가 취소* 라벨 분기 (Day 21, /seller/bookings 와 대칭).
+            // cancelled 의 *3 분기* 라벨 (Day 22):
+            //   rejectionReason 있음   → 셀러 거절 (rose, 강한 부정)
+            //   cancellationReason 있음 → 내가 취소 (amber, 주의 신호)
+            //   둘 다 없음               → 기본 cancelled (red, fallback)
+            // *얇은 함수 추출 안 함* — Day 19 원칙 (inline ternary 가 함수 호출보다 직설).
+            // 다음 정리 Day 에 *세 분기 함수화* 후보.
             const status =
               b.status === BookingStatus.cancelled && b.rejectionReason
                 ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
-                : STATUS_LABEL[b.status]
+                : b.status === BookingStatus.cancelled && b.cancellationReason
+                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700" }
+                  : STATUS_LABEL[b.status]
             return (
-              // ⑤ 카드 전체를 Link로 — ServiceCard와 일관된 패턴.
-              // status 라벨은 *시각 표시만*이라 별도 액션 X → 안에 Link 없어 충돌 없음.
-              <li key={b.id}>
+              // Day 22: 카드 구조 변경 — *Link 안에 form 충돌 회피* 위해
+              //   li 가 border + hover 가짐, Link 는 padding 만, 액션 영역은 *Link 밖*.
+              //   pending 카드만 액션 영역 추가 — 그 외 상태는 단일 Link 카드.
+              <li
+                key={b.id}
+                className="overflow-hidden rounded-xl border border-zinc-200 bg-white text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm"
+              >
                 {/* ?from=/bookings → 상세 페이지의 뒤로가기가 "← 내 예약으로"로 동적 표시 */}
                 <Link
                   href={`/services/${b.service.id}?from=${encodeURIComponent("/bookings")}`}
-                  className="block rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm"
+                  className="block p-5"
                 >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -142,15 +154,30 @@ export default async function BookingsPage({
                   </p>
                 )}
 
-                {/* 셀러 거절 사유 (Day 21) — cancelled + rejectionReason 둘 다 있을 때만.
-                    내가 취소한 경우(rejectionReason 없음) 는 표시 X. */}
+                {/* 셀러 거절 사유 (Day 21) */}
                 {b.status === BookingStatus.cancelled && b.rejectionReason && (
                   <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
                     <strong className="font-semibold">거절 사유:</strong>{" "}
                     {b.rejectionReason}
                   </div>
                 )}
+
+                {/* 내 취소 사유 (Day 22) — 본인 액션 reminder (Day 21 정신) */}
+                {b.status === BookingStatus.cancelled && b.cancellationReason && (
+                  <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+                    <strong className="font-semibold">취소 사유:</strong>{" "}
+                    {b.cancellationReason}
+                  </div>
+                )}
                 </Link>
+
+                {/* 액션 — pending 일 때만 [취소하기] (Day 22). *Link 밖* 영역.
+                    학습 단계 정책: 셀러 확정 후엔 cancel X (별도 흐름 필요). */}
+                {b.status === BookingStatus.pending && (
+                  <div className="border-t border-zinc-100 px-5 py-3">
+                    <CancelForm bookingId={b.id} />
+                  </div>
+                )}
               </li>
             )
           })}

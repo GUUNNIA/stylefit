@@ -636,7 +636,21 @@ async function main() {
       buyerMemo: "급하게 가능한 분 찾고 있어요.",
     },
   })
-  console.log("  GUUN 셀러 받은 예약 3개 추가 (pending 2 + cancelled+사유 1)")
+  // Day 22 — buyer 가 취소한 상태 (cancellationReason 있음, rejectionReason 없음)
+  // 셀러 측: amber "취소됨" 라벨 + 취소 사유 박스. buyer (박서연) 측: 같은 booking 의 *내 취소 사유* reminder.
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer2.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(-5),
+      confirmedDatetime: null,
+      status: BookingStatus.cancelled,
+      cancellationReason: "갑작스러운 일정 변경으로 부득이 취소합니다. 죄송합니다.",
+      buyerMemo: "포트폴리오 점검 부탁드립니다.",
+    },
+  })
+  console.log("  GUUN 셀러 받은 예약 4개 추가 (pending 2 + 셀러거절 1 + buyer취소 1)")
 
   // 11) 모든 시드 service를 verificationStatus="approved"로 일괄 표시 (Day 13)
   //     schema의 default가 "pending"이라 신규 등록은 검증 대기 상태로 시작.

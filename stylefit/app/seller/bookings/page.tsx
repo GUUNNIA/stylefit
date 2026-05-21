@@ -79,13 +79,17 @@ export default async function SellerBookingsPage() {
       ) : (
         <ul className="space-y-4">
           {sorted.map((b) => {
-            // cancelled 의 *셀러 거절* vs *buyer 취소* 라벨 분기 (Day 21).
-            // rejectionReason 있으면 셀러가 거절 → "거절됨", 없으면 buyer 가 취소 → "취소됨".
-            // *얇은 함수 추출 안 함* — Day 19 원칙 (3 줄 inline 이 함수 호출보다 직설).
+            // cancelled 의 *3 분기* 라벨 (Day 22, /bookings 와 대칭):
+            //   rejectionReason 있음   → 내가 거절 (rose, 강한 부정)
+            //   cancellationReason 있음 → buyer 가 취소 (amber, 주의 신호)
+            //   둘 다 없음               → 기본 cancelled (red, fallback)
+            // *얇은 함수 추출 안 함* — Day 19 원칙. 다음 정리 Day 에 *세 분기 함수화* 후보.
             const status =
               b.status === BookingStatus.cancelled && b.rejectionReason
                 ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
-                : STATUS_LABEL[b.status]
+                : b.status === BookingStatus.cancelled && b.cancellationReason
+                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700" }
+                  : STATUS_LABEL[b.status]
             return (
               <li
                 key={b.id}
@@ -139,11 +143,19 @@ export default async function SellerBookingsPage() {
                   </p>
                 )}
 
-                {/* 거절 사유 표시 — 자기가 입력한 사유 reminder (admin/services 패턴 일관) */}
+                {/* 거절 사유 표시 (Day 21) — 자기가 입력한 사유 reminder (admin/services 패턴 일관) */}
                 {b.status === BookingStatus.cancelled && b.rejectionReason && (
                   <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
                     <strong className="font-semibold">거절 사유:</strong>{" "}
                     {b.rejectionReason}
+                  </div>
+                )}
+
+                {/* buyer 취소 사유 (Day 22) — 셀러가 *왜 취소됐는지* 알아야 함 (대칭 정보) */}
+                {b.status === BookingStatus.cancelled && b.cancellationReason && (
+                  <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+                    <strong className="font-semibold">취소 사유:</strong>{" "}
+                    {b.cancellationReason}
                   </div>
                 )}
 
