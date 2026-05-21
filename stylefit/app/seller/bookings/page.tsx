@@ -1,18 +1,21 @@
-// /seller/bookings — 셀러가 받은 예약 목록 (Day 13 — A-2)
+// /seller/bookings — 셀러가 받은 예약 목록 (Day 13, Day 21 액션 추가)
 //
 // buyer /bookings 의 *대칭형* — 같은 데이터를 받은 사람 시각에서.
 // 정렬은 status 우선(pending 위) — 셀러가 *행동 필요* 건을 먼저 보게.
-// 액션(수락/거절)은 *읽기 전용 단계*라 제외 — Day 14+에서 Server Action으로.
 //
-// TODO(Day 14+): STATUS_LABEL, formatBookingDatetime 을 lib/booking.ts 등 공통 모듈로 추출.
-// 지금은 buyer /bookings 와 동일 객체를 복붙 — 셀러 시각에서 라벨 텍스트가 진화할 여지 보존.
+// Day 21: pending 카드에 [확정] / [거절] 액션 추가. confirmBookingAction + RejectBookingForm.
+// STATUS_LABEL 도 BookingStatus enum 타입으로 — Day 19 의 *Record<Enum, ...>* 패턴 일관.
+// cancelled 의 *셀러 거절* vs *buyer 취소* 는 rejectionReason 유무로 간접 구분 (라벨 분기).
 
 import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
+import { BookingStatus } from "@prisma/client"
+import { confirmBookingAction } from "./actions"
+import RejectBookingForm from "./RejectBookingForm"
 
-// status → 한국어 라벨 + 색
-const STATUS_LABEL: Record<string, { text: string; className: string }> = {
+// status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장* (?? fallback 불필요).
+const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
   pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700" },
   confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700" },
   completed: { text: "완료", className: "bg-zinc-100 text-zinc-500" },
@@ -20,7 +23,7 @@ const STATUS_LABEL: Record<string, { text: string; className: string }> = {
 }
 
 // 셀러 행동 우선순위 — pending 위, cancelled 아래
-const STATUS_ORDER: Record<string, number> = {
+const STATUS_ORDER: Record<BookingStatus, number> = {
   pending: 0,
   confirmed: 1,
   completed: 2,
@@ -60,8 +63,9 @@ export default async function SellerBookingsPage() {
 
   // [...bookings].sort(...) — 원본 mutate 안 하려고 복사 (findMany 결과라 지금은 영향 없지만 습관).
   // 같은 status 안에선 createdAt desc 유지 (Array.prototype.sort는 stable).
+  // STATUS_ORDER 가 enum 화돼서 *?? fallback 불필요* (Day 21 정리).
   const sorted = [...bookings].sort(
-    (a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
+    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
   )
 
   return (
@@ -75,11 +79,13 @@ export default async function SellerBookingsPage() {
       ) : (
         <ul className="space-y-4">
           {sorted.map((b) => {
+            // cancelled 의 *셀러 거절* vs *buyer 취소* 라벨 분기 (Day 21).
+            // rejectionReason 있으면 셀러가 거절 → "거절됨", 없으면 buyer 가 취소 → "취소됨".
+            // *얇은 함수 추출 안 함* — Day 19 원칙 (3 줄 inline 이 함수 호출보다 직설).
             const status =
-              STATUS_LABEL[b.status] ?? {
-                text: b.status,
-                className: "bg-zinc-100 text-zinc-700",
-              }
+              b.status === BookingStatus.cancelled && b.rejectionReason
+                ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
+                : STATUS_LABEL[b.status]
             return (
               <li
                 key={b.id}
@@ -131,6 +137,31 @@ export default async function SellerBookingsPage() {
                   <p className="mt-3 rounded-md bg-zinc-50 p-3 text-sm text-zinc-700">
                     {b.buyerMemo}
                   </p>
+                )}
+
+                {/* 거절 사유 표시 — 자기가 입력한 사유 reminder (admin/services 패턴 일관) */}
+                {b.status === BookingStatus.cancelled && b.rejectionReason && (
+                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                    <strong className="font-semibold">거절 사유:</strong>{" "}
+                    {b.rejectionReason}
+                  </div>
+                )}
+
+                {/* 액션 — pending 일 때만 [확정] / [거절] (Day 21).
+                    그 외 상태 (confirmed/completed/cancelled) 는 액션 없음 — 학습 단계 단순화. */}
+                {b.status === BookingStatus.pending && (
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
+                    <form action={confirmBookingAction}>
+                      <input type="hidden" name="bookingId" value={b.id} />
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700"
+                      >
+                        확정
+                      </button>
+                    </form>
+                    <RejectBookingForm bookingId={b.id} />
+                  </div>
                 )}
               </li>
             )

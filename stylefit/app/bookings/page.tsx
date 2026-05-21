@@ -1,7 +1,11 @@
-// /bookings — 내 예약 목록 (Day 11)
+// /bookings — 내 예약 목록 (Day 11, Day 21 거절 사유 표시)
 //
 // 첫 *보호 페이지* — DAL의 verifySession()으로 세션 확인,
 // 없으면 redirect("/login")으로 페이지 자체에 접근 차단.
+//
+// Day 21: 셀러 거절 사유 표시 + STATUS_LABEL 을 BookingStatus enum 타입으로 정리 (Day 19 패턴).
+// cancelled + rejectionReason 있음 = 셀러가 거절 → "거절됨" 라벨 + 사유 표시.
+// cancelled + rejectionReason 없음 = buyer 본인이 취소 → "취소됨" 라벨 (취소 액션은 미래 Day).
 
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -9,9 +13,10 @@ import { prisma } from "@/app/lib/prisma"
 import { verifySession } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import SuccessBanner from "@/app/components/SuccessBanner"
+import { BookingStatus } from "@prisma/client"
 
-// status → 한국어 라벨 + 색
-const STATUS_LABEL: Record<string, { text: string; className: string }> = {
+// status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장*.
+const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
   pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700" },
   confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700" },
   completed: { text: "완료", className: "bg-zinc-100 text-zinc-500" },
@@ -81,11 +86,11 @@ export default async function BookingsPage({
       ) : (
         <ul className="space-y-4">
           {bookings.map((b) => {
+            // cancelled 의 *셀러 거절* vs *내가 취소* 라벨 분기 (Day 21, /seller/bookings 와 대칭).
             const status =
-              STATUS_LABEL[b.status] ?? {
-                text: b.status,
-                className: "bg-zinc-100 text-zinc-700",
-              }
+              b.status === BookingStatus.cancelled && b.rejectionReason
+                ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
+                : STATUS_LABEL[b.status]
             return (
               // ⑤ 카드 전체를 Link로 — ServiceCard와 일관된 패턴.
               // status 라벨은 *시각 표시만*이라 별도 액션 X → 안에 Link 없어 충돌 없음.
@@ -135,6 +140,15 @@ export default async function BookingsPage({
                   <p className="mt-3 rounded-md bg-zinc-50 p-3 text-sm text-zinc-700">
                     {b.buyerMemo}
                   </p>
+                )}
+
+                {/* 셀러 거절 사유 (Day 21) — cancelled + rejectionReason 둘 다 있을 때만.
+                    내가 취소한 경우(rejectionReason 없음) 는 표시 X. */}
+                {b.status === BookingStatus.cancelled && b.rejectionReason && (
+                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                    <strong className="font-semibold">거절 사유:</strong>{" "}
+                    {b.rejectionReason}
+                  </div>
                 )}
                 </Link>
               </li>

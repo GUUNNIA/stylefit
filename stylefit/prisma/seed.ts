@@ -585,7 +585,7 @@ async function main() {
     },
   })
 
-  await prisma.service.create({
+  const myService = await prisma.service.create({
     data: {
       sellerProfileId: myProfile.id,
       title: "UI/UX 디자인 1:1 컨설팅",
@@ -597,6 +597,46 @@ async function main() {
     },
   })
   console.log("  본인 계정 1명 (User + SellerProfile + Service) 생성 완료")
+
+  // 10-A) GUUN 셀러 받은 예약 시드 (Day 21 — 셀러 액션 검증용)
+  //   pending 2개 — [확정] [거절] 액션 테스트
+  //   cancelled + rejectionReason 1개 — 이미 거절된 상태 표시 검증 (배지 "거절됨" + 사유 박스)
+  //   buyer 측 검증은 김민지(buyer1) / 정수아(buyer5) 로 로그인해 /bookings 에서 확인.
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer1.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(4),
+      confirmedDatetime: null,
+      status: BookingStatus.pending,
+      buyerMemo: "UI/UX 포트폴리오 피드백 받고 싶어요.",
+    },
+  })
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer3.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(6),
+      confirmedDatetime: null,
+      status: BookingStatus.pending,
+      buyerMemo: null,
+    },
+  })
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer5.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(-2),
+      confirmedDatetime: null,
+      status: BookingStatus.cancelled,
+      rejectionReason: "해당 일정에 이미 다른 작업이 잡혀 있어 부득이 거절합니다.",
+      buyerMemo: "급하게 가능한 분 찾고 있어요.",
+    },
+  })
+  console.log("  GUUN 셀러 받은 예약 3개 추가 (pending 2 + cancelled+사유 1)")
 
   // 11) 모든 시드 service를 verificationStatus="approved"로 일괄 표시 (Day 13)
   //     schema의 default가 "pending"이라 신규 등록은 검증 대기 상태로 시작.

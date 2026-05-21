@@ -130,6 +130,7 @@ model Booking {
   // Day 17: String → enum
   status            BookingStatus  @default(pending)
   buyerMemo         String?                                               // 구매자 메모
+  rejectionReason   String?                                               // 셀러 거절 시 사유 (Day 21). cancelled + 사유 있으면 *셀러 거절*, 없으면 *buyer 취소* 로 간접 구분
   createdAt         DateTime       @default(now())                         // 생성 시각
   updatedAt         DateTime       @updatedAt                             // 수정 시 자동 업데이트
 
@@ -316,8 +317,12 @@ enum AuditTargetType {
 //   - created: 새 서비스 등록
 //   - updated: 기존 서비스 수정 (재검증 강제 — Day 15 정신)
 //   - toggled: isActive 토글 (방향은 metadata.to 에 기록)
+//   - bookingConfirmed/bookingRejected: 예약 확정·거절 (Day 21). serviceId 는 *그 예약의 service*,
+//     metadata.bookingId 로 어떤 예약인지 보존. bookingRejected 는 metadata.rejectionReason 도 추가.
 enum SellerActivity {
   created
   updated
   toggled
+  bookingConfirmed
+  bookingRejected
 }

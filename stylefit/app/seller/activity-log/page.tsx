@@ -24,6 +24,8 @@ const ACTIVITY_LABEL: Record<SellerActivity, string> = {
   created: "등록",
   updated: "수정",
   toggled: "토글",
+  bookingConfirmed: "예약 확정",
+  bookingRejected: "예약 거절",
 }
 
 // 활동별 기본 배지 색. toggled 는 metadata.to 따라 아래에서 분기.
@@ -31,6 +33,8 @@ const ACTIVITY_BADGE: Record<SellerActivity, string> = {
   created: "bg-emerald-50 text-emerald-700",
   updated: "bg-sky-50 text-sky-700",
   toggled: "bg-zinc-100 text-zinc-700",
+  bookingConfirmed: "bg-emerald-50 text-emerald-700",
+  bookingRejected: "bg-rose-50 text-rose-700",
 }
 
 // metadata.to (boolean) 만 추출. 외 키는 무시 — audit-log 의 extractRejectionReason 자매.
@@ -39,6 +43,15 @@ function extractToggleTo(metadata: unknown): boolean | null {
   if (!("to" in metadata)) return null
   const to = (metadata as { to: unknown }).to
   return typeof to === "boolean" ? to : null
+}
+
+// metadata.rejectionReason 만 추출. Day 18 audit-log 의 동명 함수와 *복붙* (두 번째 사용처라 추출 X).
+// 세 번째 도달 시 [[feedback-extraction-threshold]] 따라 lib 으로 추출 후보.
+function extractRejectionReason(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null
+  if (!("rejectionReason" in metadata)) return null
+  const reason = (metadata as { rejectionReason: unknown }).rejectionReason
+  return typeof reason === "string" ? reason : null
 }
 
 // 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음 (Day 19 학습).
@@ -115,6 +128,7 @@ export default async function SellerActivityLogPage({
                 <th className="px-4 py-3">시각</th>
                 <th className="px-4 py-3">활동</th>
                 <th className="px-4 py-3">서비스</th>
+                <th className="px-4 py-3">비고</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 text-zinc-900">
@@ -137,6 +151,13 @@ export default async function SellerActivityLogPage({
                     : toggledTo === false
                       ? "bg-zinc-100 text-zinc-700"
                       : ACTIVITY_BADGE[log.activity]
+
+                // 비고 — bookingRejected 의 metadata.rejectionReason 만 (Day 21).
+                // 다른 활동은 빈 셀. Day 18 audit-log 와 *동일 패턴*.
+                const reason =
+                  log.activity === SellerActivity.bookingRejected
+                    ? extractRejectionReason(log.metadata)
+                    : null
 
                 return (
                   <tr key={log.id}>
@@ -164,6 +185,7 @@ export default async function SellerActivityLogPage({
                         {log.service.title}
                       </Link>
                     </td>
+                    <td className="px-4 py-3 text-zinc-600">{reason ?? ""}</td>
                   </tr>
                 )
               })}
