@@ -64,7 +64,9 @@ export function validateEnumParam<T extends string>(
  *
  * 미래에 *진짜 컴포넌트* (Link 까지 감싸는) 로 진화하면 그때 분리.
  */
+// 라이트: 활성=검정 칩(흰 글씨) / 비활성=옅은 잉크 톤(black/10).
+// 다크: 활성=흰 칩(검정 글씨) / 비활성=옅은 잉크 톤(white/10) — 라이트의 inverse.
 export const chipClass = (isActive: boolean) =>
   isActive
-    ? "rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white"
-    : "rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+    ? "rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-zinc-900"
+    : "rounded-full bg-black/10 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-black/20 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"

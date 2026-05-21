@@ -12,6 +12,7 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/app/lib/dal"
 import { deleteSession } from "@/app/lib/session"
 import NavLink from "./NavLink"
+import ThemeToggle from "./ThemeToggle"
 
 // inline Server Action: 함수 내부에 "use server" 지시
 async function logoutAction() {
@@ -35,6 +36,8 @@ export default async function Header() {
           <NavLink href="/services" matchPrefix>
             서비스
           </NavLink>
+
+          <ThemeToggle />
 
           {user ? (
             <>
