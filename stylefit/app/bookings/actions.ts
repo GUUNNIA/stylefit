@@ -69,3 +69,51 @@ export async function cancelBookingAction(formData: FormData) {
   revalidatePath("/bookings")
   revalidatePath("/seller/bookings")
 }
+
+// 후기 작성 (Day 24) — completed booking 에만 가능. buyer 본인 + review 없음 조건.
+//   - $transaction 안 씀 — *단일 create*. 분기 의존성 없음.
+//   - 본인 격리 + status: completed + review null 조건 = 한 findFirst 로 확인.
+//   - bookingId @unique 가 *중복 review FK 차단* — 명시 findFirst 검증으로 *UX 명확* (조용히 무시).
+//   - Review 모델 활성화 (Day 13 부터 시드만, 액션 없었음).
+export async function createReviewAction(formData: FormData) {
+  const session = await verifySession()
+  if (!session) {
+    redirect("/login")
+  }
+
+  const bookingId = extractBookingId(formData)
+  if (bookingId === null) return
+
+  // rating 안전 변환 — 1~5 정수만
+  const rating = Number(formData.get("rating"))
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return
+
+  const content = ((formData.get("content") as string | null) ?? "").trim()
+  if (content.length < 1) return // 내용 없이는 차단 (UI required + 서버 안전망)
+
+  // booking 검증 — buyer 본인 + completed + review 없음 (review: null = 1:1 관계 필터)
+  // sellerProfileId 비정규화 위해 read — Review 모델의 비정규화 컬럼 채움.
+  const booking = await prisma.booking.findFirst({
+    where: {
+      id: bookingId,
+      buyerId: session.userId,
+      status: BookingStatus.completed,
+      review: null,
+    },
+    select: { id: true, sellerProfileId: true },
+  })
+  if (!booking) return // 조건 안 맞음 — 조용히 무시
+
+  await prisma.review.create({
+    data: {
+      bookingId: booking.id,
+      buyerId: session.userId,
+      sellerProfileId: booking.sellerProfileId,
+      rating,
+      content,
+    },
+  })
+
+  revalidatePath("/bookings")
+  // 셀러 측 / service 상세 페이지 후기 노출은 *미래 Day* — 학습 범위 관리
+}

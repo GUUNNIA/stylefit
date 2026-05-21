@@ -16,6 +16,7 @@ import SuccessBanner from "@/app/components/SuccessBanner"
 import { BookingStatus } from "@prisma/client"
 import { cancelBookingAction } from "./actions"
 import ReasonForm from "@/app/components/ReasonForm"
+import ReviewForm from "./ReviewForm"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장*.
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
@@ -61,6 +62,8 @@ export default async function BookingsPage({
       sellerProfile: {
         include: { user: { select: { name: true } } },
       },
+      // Day 24: 내 후기 (1:1, 선택). completed booking 의 *후기 작성 여부* 분기에 사용.
+      review: { select: { rating: true, content: true } },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -170,10 +173,19 @@ export default async function BookingsPage({
                     {b.cancellationReason}
                   </div>
                 )}
+
+                {/* 내 후기 (Day 24) — completed + review 있음. *본인 액션 reminder* 패턴 일관. */}
+                {b.status === BookingStatus.completed && b.review && (
+                  <div className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                    <strong className="font-semibold">내 후기:</strong>{" "}
+                    {b.review.rating}점 — {b.review.content}
+                  </div>
+                )}
                 </Link>
 
-                {/* 액션 — pending 일 때만 [취소하기] (Day 22). *Link 밖* 영역.
-                    학습 단계 정책: 셀러 확정 후엔 cancel X (별도 흐름 필요). */}
+                {/* 액션 — 상태별 분기 (Day 22 cancel, Day 24 후기):
+                    pending → [취소하기]
+                    completed + review 없음 → [후기 작성] */}
                 {b.status === BookingStatus.pending && (
                   <div className="border-t border-zinc-100 px-5 py-3">
                     <ReasonForm
@@ -186,6 +198,11 @@ export default async function BookingsPage({
                       closeLabel="닫기"
                       color="amber"
                     />
+                  </div>
+                )}
+                {b.status === BookingStatus.completed && !b.review && (
+                  <div className="border-t border-zinc-100 px-5 py-3">
+                    <ReviewForm bookingId={b.id} />
                   </div>
                 )}
               </li>

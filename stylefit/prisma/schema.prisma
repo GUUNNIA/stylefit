@@ -320,10 +320,13 @@ enum AuditTargetType {
 //   - toggled: isActive 토글 (방향은 metadata.to 에 기록)
 //   - bookingConfirmed/bookingRejected: 예약 확정·거절 (Day 21). serviceId 는 *그 예약의 service*,
 //     metadata.bookingId 로 어떤 예약인지 보존. bookingRejected 는 metadata.rejectionReason 도 추가.
+//   - bookingCompleted: 예약 완료 처리 (Day 24). 셀러가 *서비스 마침* 표시 — confirmed → completed.
+//     이후 buyer 가 후기 작성 가능 (Review 모델 활성화).
 enum SellerActivity {
   created
   updated
   toggled
   bookingConfirmed
   bookingRejected
+  bookingCompleted
 }

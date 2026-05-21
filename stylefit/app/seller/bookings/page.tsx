@@ -11,7 +11,11 @@ import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import { BookingStatus } from "@prisma/client"
-import { confirmBookingAction, rejectBookingAction } from "./actions"
+import {
+  confirmBookingAction,
+  rejectBookingAction,
+  completeBookingAction,
+} from "./actions"
 import ReasonForm from "@/app/components/ReasonForm"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장* (?? fallback 불필요).
@@ -159,8 +163,23 @@ export default async function SellerBookingsPage() {
                   </div>
                 )}
 
-                {/* 액션 — pending 일 때만 [확정] / [거절] (Day 21).
-                    그 외 상태 (confirmed/completed/cancelled) 는 액션 없음 — 학습 단계 단순화. */}
+                {/* 액션 — 상태별 분기:
+                    pending → [확정] / [거절] (Day 21)
+                    confirmed → [완료 처리] (Day 24)
+                    completed/cancelled → 액션 없음 */}
+                {b.status === BookingStatus.confirmed && (
+                  <div className="mt-4 flex border-t border-zinc-100 pt-4">
+                    <form action={completeBookingAction}>
+                      <input type="hidden" name="bookingId" value={b.id} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+                      >
+                        완료 처리
+                      </button>
+                    </form>
+                  </div>
+                )}
                 {b.status === BookingStatus.pending && (
                   <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
                     <form action={confirmBookingAction}>

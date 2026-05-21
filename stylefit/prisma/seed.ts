@@ -650,7 +650,56 @@ async function main() {
       buyerMemo: "포트폴리오 점검 부탁드립니다.",
     },
   })
-  console.log("  GUUN 셀러 받은 예약 4개 추가 (pending 2 + 셀러거절 1 + buyer취소 1)")
+
+  // Day 24 — 완료 액션 + 후기 작성 검증용 3 booking
+  //   (1) confirmed (이도윤) — 셀러 [완료 처리] 액션 검증
+  //   (2) completed + review 없음 (최하준) — buyer [후기 작성] 액션 검증 (최하준 로그인)
+  //   (3) completed + review 있음 (정수아) — buyer 측 *내 후기 박스* 표시 검증
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer3.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(2),
+      confirmedDatetime: daysFromNow(2),
+      status: BookingStatus.confirmed,
+      buyerMemo: null,
+    },
+  })
+  await prisma.booking.create({
+    data: {
+      buyerId: buyer4.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(-7),
+      confirmedDatetime: daysFromNow(-7),
+      status: BookingStatus.completed,
+      buyerMemo: "디자인 방향성 조언 부탁드립니다.",
+    },
+  })
+  const bookingForMyReview = await prisma.booking.create({
+    data: {
+      buyerId: buyer5.id,
+      serviceId: myService.id,
+      sellerProfileId: myProfile.id,
+      preferredDatetime: daysFromNow(-12),
+      confirmedDatetime: daysFromNow(-12),
+      status: BookingStatus.completed,
+      buyerMemo: null,
+    },
+  })
+  await prisma.review.create({
+    data: {
+      bookingId: bookingForMyReview.id,
+      buyerId: buyer5.id,
+      sellerProfileId: myProfile.id,
+      rating: 5,
+      content: "정말 친절하게 1:1 컨설팅 해주셨어요. 추천합니다!",
+    },
+  })
+  console.log(
+    "  GUUN 셀러 받은 예약 7개 (Day 21 셀러거절 1 + Day 22 buyer취소 1 + pending 2 + Day 24 confirmed 1 + completed 후기없음 1 + completed 후기있음 1 + Review 1)"
+  )
 
   // 11) 모든 시드 service를 verificationStatus="approved"로 일괄 표시 (Day 13)
   //     schema의 default가 "pending"이라 신규 등록은 검증 대기 상태로 시작.

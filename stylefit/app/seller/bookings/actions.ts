@@ -77,6 +77,48 @@ export async function confirmBookingAction(formData: FormData) {
   revalidatePath("/bookings")
 }
 
+// 완료 처리 — confirmed → completed (Day 24). 셀러가 *서비스 마침* 표시.
+//   - status: confirmed → completed (이후 buyer 후기 작성 가능)
+//   - $transaction 분기 의존성 + 참조 의존성 (Day 21 confirm 패턴과 동일)
+//   - findFirst 로 본인 + confirmed 검증 후 update + log
+//   - 사유 없음 — *완료는 긍정 액션* (reject/cancel 의 사유 강제와 다름)
+export async function completeBookingAction(formData: FormData) {
+  const sellerProfile = await requireSellerProfile("/seller/bookings")
+  const bookingId = extractBookingId(formData)
+  if (bookingId === null) return
+
+  await prisma.$transaction(async (tx) => {
+    // 본인 + confirmed booking 만 처리. *pending 또는 cancelled 는 완료 불가* (status 흐름 강제).
+    const booking = await tx.booking.findFirst({
+      where: {
+        id: bookingId,
+        sellerProfileId: sellerProfile.id,
+        status: BookingStatus.confirmed,
+      },
+      select: { id: true, serviceId: true },
+    })
+    if (!booking) return // 본인 X / confirmed 아님 — 조용히 무시
+
+    const { count } = await tx.booking.updateMany({
+      where: { id: booking.id, status: BookingStatus.confirmed },
+      data: { status: BookingStatus.completed },
+    })
+    if (count === 0) return // race 충돌
+
+    await tx.sellerActivityLog.create({
+      data: {
+        sellerProfileId: sellerProfile.id,
+        activity: SellerActivity.bookingCompleted,
+        serviceId: booking.serviceId,
+        metadata: { bookingId: booking.id },
+      },
+    })
+  })
+
+  revalidatePath("/seller/bookings")
+  revalidatePath("/bookings") // buyer 도 *완료* 라벨 보고 후기 작성 가능해야
+}
+
 // 거절 — pending → cancelled + rejectionReason. 사유 없이는 차단 (admin reject 패턴).
 export async function rejectBookingAction(formData: FormData) {
   const sellerProfile = await requireSellerProfile("/seller/bookings")

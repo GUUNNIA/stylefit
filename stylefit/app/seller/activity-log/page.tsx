@@ -30,15 +30,18 @@ const ACTIVITY_LABEL: Record<SellerActivity, string> = {
   toggled: "토글",
   bookingConfirmed: "예약 확정",
   bookingRejected: "예약 거절",
+  bookingCompleted: "예약 완료",
 }
 
 // 활동별 기본 배지 색. toggled 는 metadata.to 따라 아래에서 분기.
+//   stone (bookingCompleted) — *마침 의미의 중립 + 따뜻한 회색*. emerald (시작) 과 시각 차별.
 const ACTIVITY_BADGE: Record<SellerActivity, string> = {
   created: "bg-emerald-50 text-emerald-700",
   updated: "bg-sky-50 text-sky-700",
   toggled: "bg-zinc-100 text-zinc-700",
   bookingConfirmed: "bg-emerald-50 text-emerald-700",
   bookingRejected: "bg-rose-50 text-rose-700",
+  bookingCompleted: "bg-stone-100 text-stone-700",
 }
 
 // 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음 (Day 19 학습).
