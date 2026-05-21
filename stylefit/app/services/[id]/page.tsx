@@ -40,8 +40,12 @@ export default async function ServiceDetailPage({
   // (??는 빈 문자열을 통과시켜 타입이 깨짐 — "" | {...} 형태가 됨)
   const backLink = (from && BACK_LINKS[from]) || BACK_LINKS["/services"]
 
-  // 서비스 + 셀러 정보를 *병렬*로 — 사용자 정보와 동시에 가져옴
-  const [service, user] = await Promise.all([
+  // 서비스 + 셀러 정보 + 후기 통계 + 최신 후기 5 + 사용자 — *4 쿼리 병렬* (Day 25)
+  //   - reviewStats: *Prisma aggregate 첫 도입* — _avg + _count 한 쿼리에서 집계
+  //   - recentReviews: 최신 5개 만 (페이지네이션은 미래 Day)
+  //   - 두 쿼리 모두 *nested filter* (where: { booking: { serviceId } }) — Review 가 *booking 거쳐서 service 와 연결*
+  //     Review.serviceId 비정규화 컬럼 없음 → Prisma 의 nested where 활용
+  const [service, reviewStats, recentReviews, user] = await Promise.all([
     prisma.service.findUnique({
       where: { id: serviceId },
       include: {
@@ -49,6 +53,17 @@ export default async function ServiceDetailPage({
           include: { user: { select: { name: true } } },
         },
       },
+    }),
+    prisma.review.aggregate({
+      where: { booking: { serviceId } },
+      _avg: { rating: true },
+      _count: true,
+    }),
+    prisma.review.findMany({
+      where: { booking: { serviceId } },
+      include: { buyer: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
     }),
     getCurrentUser(),
   ])
@@ -116,6 +131,56 @@ export default async function ServiceDetailPage({
               로그인하고 예약하기
             </Link>
           </div>
+        )}
+      </section>
+
+      {/* 후기 섹션 (Day 25) — 공개 후기. 결정 보조 정보라 예약 영역 *아래* 배치.
+          후기 0개 → "아직 후기가 없습니다" fallback.
+          평균 별점은 _avg.rating?.toFixed(1) — _avg 가 *후기 0개 시 null* 가능성. */}
+      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6">
+        <h2 className="text-xl font-bold tracking-tight">후기</h2>
+
+        {reviewStats._count > 0 ? (
+          <>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-lg font-semibold text-amber-600">
+                ★ {reviewStats._avg.rating?.toFixed(1)}
+              </span>
+              <span className="text-sm text-zinc-500">
+                후기 {reviewStats._count}개
+              </span>
+            </div>
+
+            <ul className="mt-6 space-y-4">
+              {recentReviews.map((r) => (
+                <li
+                  key={r.id}
+                  className="border-t border-zinc-100 pt-4 first:border-t-0 first:pt-0"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-medium text-zinc-900">
+                      {r.buyer.name}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {r.createdAt.toLocaleDateString("ko-KR")}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-sm text-amber-600">★ {r.rating}</div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">
+                    {r.content}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            {reviewStats._count > 5 && (
+              <p className="mt-6 text-center text-xs text-zinc-500">
+                최신 5개만 표시 (전체 {reviewStats._count}개)
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-zinc-500">아직 후기가 없습니다.</p>
         )}
       </section>
     </main>

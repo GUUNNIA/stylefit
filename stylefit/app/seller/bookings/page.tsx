@@ -61,6 +61,8 @@ export default async function SellerBookingsPage() {
         },
       },
       buyer: { select: { id: true, name: true } },
+      // Day 25: 받은 후기 (1:1, 선택). completed 카드의 *받은 후기 박스* 표시.
+      review: { select: { rating: true, content: true } },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -160,6 +162,14 @@ export default async function SellerBookingsPage() {
                   <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
                     <strong className="font-semibold">취소 사유:</strong>{" "}
                     {b.cancellationReason}
+                  </div>
+                )}
+
+                {/* 받은 후기 (Day 25) — completed + review 있음. buyer 측 *내 후기* 와 대칭. */}
+                {b.status === BookingStatus.completed && b.review && (
+                  <div className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                    <strong className="font-semibold">받은 후기:</strong>{" "}
+                    {b.review.rating}점 — {b.review.content}
                   </div>
                 )}
 
