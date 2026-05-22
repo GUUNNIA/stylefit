@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# .env.example 은 *신규 환경 셋업 가이드* 라 추적 (Day 32).
+!.env.example
 
 # vercel
 .vercel
