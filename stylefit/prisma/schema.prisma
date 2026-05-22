@@ -191,6 +191,11 @@ model Message {
   thread    MessageThread @relation(fields: [threadId], references: [id]) // 대화방과 관계
   sender    User          @relation("MessageSender", fields: [senderId], references: [id]) // 발신자와 관계
 
+  // 복합 인덱스 (Day 30) — `/bookings/[id]/messages` 의 핵심 쿼리:
+  //   where: { threadId } orderBy: { createdAt asc }
+  // audit-log 의 (createdAt) / 셀러 활동의 (sellerProfileId, createdAt) 와 동일 패턴 —
+  // *한정 조건 + createdAt* 복합. B-tree 라 asc/desc 양방향 활용.
+  @@index([threadId, createdAt])
   @@map("messages")
 }
 

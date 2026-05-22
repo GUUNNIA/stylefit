@@ -185,28 +185,34 @@ export default async function BookingsPage({
                 )}
                 </Link>
 
-                {/* 액션 — 상태별 분기 (Day 22 cancel, Day 24 후기):
-                    pending → [취소하기]
-                    completed + review 없음 → [후기 작성] */}
-                {b.status === BookingStatus.pending && (
-                  <div className="border-t border-line px-5 py-3">
-                    <ReasonForm
-                      action={cancelBookingAction}
-                      idName="bookingId"
-                      idValue={b.id}
-                      openLabel="취소하기"
-                      submitLabel="취소 확정"
-                      placeholder="취소 사유를 입력해 주세요. 셀러에게 표시됩니다."
-                      closeLabel="닫기"
-                      tone="primary"
-                    />
+                {/* 액션 + 메시지 (Day 30) — 모든 카드에 영역 표시.
+                    좌측: 상태별 액션 (취소/후기, 없으면 빈 자리)
+                    우측: 메시지 링크 — *모든 상태* 에서 노출 (cancelled 도 사후 협의 가능). */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
+                  <div className="flex-1">
+                    {b.status === BookingStatus.pending && (
+                      <ReasonForm
+                        action={cancelBookingAction}
+                        idName="bookingId"
+                        idValue={b.id}
+                        openLabel="취소하기"
+                        submitLabel="취소 확정"
+                        placeholder="취소 사유를 입력해 주세요. 셀러에게 표시됩니다."
+                        closeLabel="닫기"
+                        tone="primary"
+                      />
+                    )}
+                    {b.status === BookingStatus.completed && !b.review && (
+                      <ReviewForm bookingId={b.id} />
+                    )}
                   </div>
-                )}
-                {b.status === BookingStatus.completed && !b.review && (
-                  <div className="border-t border-line px-5 py-3">
-                    <ReviewForm bookingId={b.id} />
-                  </div>
-                )}
+                  <Link
+                    href={`/bookings/${b.id}/messages`}
+                    className="text-sm text-accent hover:underline"
+                  >
+                    메시지 →
+                  </Link>
+                </div>
               </li>
             )
           })}

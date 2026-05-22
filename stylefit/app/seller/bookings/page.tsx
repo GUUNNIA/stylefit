@@ -7,6 +7,7 @@
 // STATUS_LABEL 도 BookingStatus enum 타입으로 — Day 19 의 *Record<Enum, ...>* 패턴 일관.
 // cancelled 의 *셀러 거절* vs *buyer 취소* 는 rejectionReason 유무로 간접 구분 (라벨 분기).
 
+import Link from "next/link"
 import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
@@ -177,47 +178,54 @@ export default async function SellerBookingsPage() {
                   </AlertBox>
                 )}
 
-                {/* 액션 — 상태별 분기:
-                    pending → [확정] / [거절] (Day 21)
-                    confirmed → [완료 처리] (Day 24)
-                    completed/cancelled → 액션 없음 */}
-                {b.status === BookingStatus.confirmed && (
-                  <div className="mt-4 flex border-t border-line pt-4">
-                    <form action={completeBookingAction}>
-                      <input type="hidden" name="bookingId" value={b.id} />
-                      {/* 완료 처리 = secondary (흐름 진행 액션) */}
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10"
-                      >
-                        완료 처리
-                      </button>
-                    </form>
+                {/* 액션 + 메시지 (Day 30) — 모든 카드에 영역 표시.
+                    좌측: 상태별 액션 (확정/거절/완료, 없으면 빈 자리)
+                    우측: 메시지 링크 — *모든 상태* 에서 노출 (cancelled 도 사후 협의 가능). */}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {b.status === BookingStatus.pending && (
+                      <>
+                        <form action={confirmBookingAction}>
+                          <input type="hidden" name="bookingId" value={b.id} />
+                          {/* 확정 = primary (긍정 핵심 결정) */}
+                          <button
+                            type="submit"
+                            className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
+                          >
+                            확정
+                          </button>
+                        </form>
+                        <ReasonForm
+                          action={rejectBookingAction}
+                          idName="bookingId"
+                          idValue={b.id}
+                          openLabel="거절하기"
+                          submitLabel="거절 확정"
+                          placeholder="거절 사유를 입력해 주세요. 구매자에게 표시됩니다."
+                          tone="secondary"
+                        />
+                      </>
+                    )}
+                    {b.status === BookingStatus.confirmed && (
+                      <form action={completeBookingAction}>
+                        <input type="hidden" name="bookingId" value={b.id} />
+                        {/* 완료 처리 = secondary (흐름 진행 액션) */}
+                        <button
+                          type="submit"
+                          className="rounded-lg border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10"
+                        >
+                          완료 처리
+                        </button>
+                      </form>
+                    )}
                   </div>
-                )}
-                {b.status === BookingStatus.pending && (
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-                    <form action={confirmBookingAction}>
-                      <input type="hidden" name="bookingId" value={b.id} />
-                      {/* 확정 = primary (긍정 핵심 결정) */}
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
-                      >
-                        확정
-                      </button>
-                    </form>
-                    <ReasonForm
-                      action={rejectBookingAction}
-                      idName="bookingId"
-                      idValue={b.id}
-                      openLabel="거절하기"
-                      submitLabel="거절 확정"
-                      placeholder="거절 사유를 입력해 주세요. 구매자에게 표시됩니다."
-                      tone="secondary"
-                    />
-                  </div>
-                )}
+                  <Link
+                    href={`/seller/bookings/${b.id}/messages`}
+                    className="text-sm text-accent hover:underline"
+                  >
+                    메시지 →
+                  </Link>
+                </div>
               </li>
             )
           })}
