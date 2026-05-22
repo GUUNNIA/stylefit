@@ -13,6 +13,7 @@
 //   학습 단계의 실제 시나리오 (단일 사용자) 에선 발생 거의 없음.
 
 import { prisma } from "@/app/lib/prisma"
+import { emitMessage } from "@/app/lib/message-events"
 
 export async function sendMessage({
   bookingId,
@@ -64,4 +65,9 @@ export async function sendMessage({
       data: { lastMessageAt: new Date() },
     })
   })
+
+  // 트랜잭션 commit 후 emit — listener (SSE) 가 router.refresh 호출 시
+  // *DB 반영 완료 상태* 라 새 메시지 정상 fetch (Day 34).
+  // rollback 시엔 도달 X — listener 가 *잘못된 push* 받을 위험 0.
+  emitMessage({ bookingId })
 }

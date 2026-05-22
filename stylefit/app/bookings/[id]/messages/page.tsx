@@ -14,7 +14,7 @@ import { notFound, redirect } from "next/navigation"
 import { prisma } from "@/app/lib/prisma"
 import { verifySession } from "@/app/lib/dal"
 import MessageThread from "@/app/components/MessageThread"
-import PagePoller from "@/app/components/PagePoller"
+import MessageStream from "@/app/components/MessageStream"
 import MarkAsReadOnMount from "@/app/components/MarkAsReadOnMount"
 import { sendMessageAction, markAsReadAction } from "./actions"
 
@@ -76,7 +76,7 @@ export default async function BuyerMessagesPage({
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight">메시지</h1>
 
-      <PagePoller />
+      <MessageStream bookingId={booking.id} />
       <MarkAsReadOnMount bookingId={booking.id} action={markAsReadAction} />
       <MessageThread
         bookingId={booking.id}
