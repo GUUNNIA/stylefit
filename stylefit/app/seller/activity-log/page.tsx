@@ -1,4 +1,4 @@
-// /seller/activity-log — 셀러 본인 활동 이력 (Day 20)
+// /seller/activity-log — 셀러 본인 활동 이력 (Day 20, Day 29 페이지네이션)
 //
 // Day 18 admin /audit-log 의 셀러 버전 — 구분:
 //   - admin /audit-log: 운영자 *심사 결정* 추적. polymorphic target (Service|Seller).
@@ -12,6 +12,12 @@
 //   → audit-log 의 manual id resolve + Map 대신 *자연스러운 include relation*.
 //
 // 필터 한 축 (activity) — chipClass / buildUrl / validateEnumParam 은 Day 19 헬퍼 재사용.
+//
+// 페이지네이션 (Day 29) — audit-log (Day 27) 의 *두 번째 사용처*. 차이점:
+//   - audit-log: 두 축 보존 (action + targetType) — buildUrl 인자 3개.
+//   - activity-log: 한 축 보존 (activity 만) — buildUrl 인자 2개.
+//   - Promise.all([findMany, count]) / PAGE_SIZE / displayPage 클램프 / nav 마크업은 *동일*.
+//   세 번째 사용처 도달 시 paginate 헬퍼 추출 검토 (extraction threshold).
 
 import Link from "next/link"
 import { requireSellerProfile } from "@/app/lib/dal"
@@ -49,15 +55,24 @@ const ACTIVITY_BADGE: Record<SellerActivity, string> = {
 // 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음 (Day 19 학습).
 const ACTIVITY_VALUES: readonly SellerActivity[] = Object.values(SellerActivity)
 
+// 페이지당 항목 수 — *모듈 상수* 로 한 곳에서 관리. UI 와 Prisma skip 둘 다 참조.
+// audit-log 와 동일 값(20) — 페이지네이션 두 번째 사용처에서도 *일관 정책*.
+const PAGE_SIZE = 20
+
 export default async function SellerActivityLogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ activity?: string }>
+  searchParams: Promise<{ activity?: string; page?: string }>
 }) {
   const sellerProfile = await requireSellerProfile("/seller/activity-log")
 
-  const { activity: rawActivity } = await searchParams
+  const { activity: rawActivity, page: rawPage } = await searchParams
   const activity = validateEnumParam(rawActivity, ACTIVITY_VALUES)
+
+  // page 파싱 — audit-log (Day 27) 와 동일 *얕은 인라인*. 세 번째 사용처 도달 시 url-filter.ts 로 추출.
+  // 잘못된 값(음수/NaN/문자열) 은 *조용히 1* (validateEnumParam 의 number 버전).
+  const parsedPage = rawPage ? parseInt(rawPage, 10) : 1
+  const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1
 
   // where 동적 조립 — Day 16 의 *빈 객체 spread*.
   // sellerProfileId 는 *항상 들어감* (필터와 무관한 본인 격리).
@@ -68,14 +83,27 @@ export default async function SellerActivityLogPage({
 
   const isFiltered = !!activity
 
-  const logs = await prisma.sellerActivityLog.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: {
-      service: { select: { id: true, title: true } },
-    },
-  })
+  // findMany + count 동시 — Promise.all 로 두 쿼리 병렬.
+  // count 는 *필터 + 본인 격리 동일* (where) — 본인의 필터링된 전체 갯수가 진실.
+  const [logs, totalCount] = await Promise.all([
+    prisma.sellerActivityLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        service: { select: { id: true, title: true } },
+      },
+    }),
+    prisma.sellerActivityLog.count({ where }),
+  ])
+
+  // 총 페이지 수 — 0건일 땐 1 페이지로 표시 (빈 상태 카피와 합).
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+
+  // page > totalPages 인 *stale URL / hack* 대응 — 표시만 마지막 페이지로 클램프.
+  // fetch 는 이미 잘못된 skip 으로 수행되어 결과는 빈 배열 → 빈 상태 카피가 자연스럽게 뜸.
+  const displayPage = Math.min(page, totalPages)
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
@@ -83,7 +111,7 @@ export default async function SellerActivityLogPage({
       <h1 className="mb-2 text-3xl font-bold tracking-tight">활동 이력</h1>
       <p className="mb-6 text-sm text-ink-muted">
         내 서비스의 변경 이력.{" "}
-        {isFiltered ? `결과 ${logs.length}건` : `최신 ${logs.length}건 표시`}.
+        {isFiltered ? `결과 ${totalCount}건` : `전체 ${totalCount}건`}.
       </p>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
@@ -185,6 +213,73 @@ export default async function SellerActivityLogPage({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* 페이지네이션 — audit-log (Day 27) 와 *동일 마크업*. 다른 점은 buildUrl 의 축 1개 (activity).
+          totalPages 1 이하 미렌더 / page=1 은 URL 에서 생략 / 필터 축 보존 — 세 가지 정책 동일. */}
+      {totalPages > 1 && (
+        <nav className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span className="text-ink-muted">
+            {(displayPage - 1) * PAGE_SIZE + 1}–{Math.min(displayPage * PAGE_SIZE, totalCount)} / {totalCount}건
+          </span>
+          <div className="flex flex-wrap items-center gap-1">
+            {displayPage > 1 ? (
+              <Link
+                href={buildUrl("/seller/activity-log", {
+                  activity,
+                  page: displayPage - 1 > 1 ? String(displayPage - 1) : undefined,
+                })}
+                className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
+              >
+                ← 이전
+              </Link>
+            ) : (
+              <span
+                aria-disabled
+                className="rounded-md border border-line px-3 py-1.5 text-ink-subtle/60"
+              >
+                ← 이전
+              </span>
+            )}
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Link
+                key={p}
+                href={buildUrl("/seller/activity-log", {
+                  activity,
+                  page: p > 1 ? String(p) : undefined,
+                })}
+                aria-current={p === displayPage ? "page" : undefined}
+                className={
+                  p === displayPage
+                    ? "rounded-md bg-accent-bg px-3 py-1.5 font-medium text-white dark:text-zinc-900"
+                    : "rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
+                }
+              >
+                {p}
+              </Link>
+            ))}
+
+            {displayPage < totalPages ? (
+              <Link
+                href={buildUrl("/seller/activity-log", {
+                  activity,
+                  page: String(displayPage + 1),
+                })}
+                className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
+              >
+                다음 →
+              </Link>
+            ) : (
+              <span
+                aria-disabled
+                className="rounded-md border border-line px-3 py-1.5 text-ink-subtle/60"
+              >
+                다음 →
+              </span>
+            )}
+          </div>
+        </nav>
       )}
     </main>
   )
