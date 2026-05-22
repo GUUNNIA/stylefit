@@ -24,10 +24,16 @@ async function logoutAction() {
 export default async function Header() {
   const user = await getCurrentUser()
 
+  // Day 28: 셀러/관리자 메뉴 분기 — 권한 있는 사용자만 진입 링크 노출.
+  //   isSeller: SellerProfile 있고 approved 상태만. pending/rejected/none 은 X.
+  //   isAdmin: User.role === "admin".
+  const isSeller = user?.sellerProfile?.verificationStatus === "approved"
+  const isAdmin = user?.role === "admin"
+
   return (
-    <header className="border-b border-zinc-200 bg-white">
+    <header className="border-b border-line bg-surface">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="text-lg font-bold tracking-tight text-zinc-900">
+        <Link href="/" className="text-lg font-bold tracking-tight text-foreground">
           Stylefit
         </Link>
 
@@ -42,11 +48,24 @@ export default async function Header() {
           {user ? (
             <>
               <NavLink href="/bookings">내 예약</NavLink>
-              <span className="text-zinc-700">{user.name}님</span>
+              {/* 셀러: /seller/* 전체 강조 (services/bookings/activity-log 등 모두 활성).
+                  href 는 진입지 (services), matchPrefix 는 *active 범위* (seller 전체) — 분리. */}
+              {isSeller && (
+                <NavLink href="/seller/services" matchPrefix="/seller">
+                  셀러 메뉴
+                </NavLink>
+              )}
+              {/* 관리자: /admin/* 전체 강조 — 같은 분리 패턴 */}
+              {isAdmin && (
+                <NavLink href="/admin/audit-log" matchPrefix="/admin">
+                  관리자
+                </NavLink>
+              )}
+              <span className="text-ink-muted">{user.name}님</span>
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                  className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
                 >
                   로그아웃
                 </button>
@@ -56,13 +75,14 @@ export default async function Header() {
             <>
               <Link
                 href="/login"
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
               >
                 로그인
               </Link>
+              {/* primary 버튼 — Day 28 인디고 통일 */}
               <Link
                 href="/signup"
-                className="rounded-md bg-zinc-900 px-3 py-1.5 text-white transition-colors hover:bg-zinc-800"
+                className="rounded-md bg-accent-bg px-3 py-1.5 font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
               >
                 회원가입
               </Link>

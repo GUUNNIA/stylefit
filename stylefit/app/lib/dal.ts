@@ -20,6 +20,8 @@ export async function verifySession() {
 
 // 현재 로그인 사용자의 정보. 세션 없으면 null.
 // select 화이트리스트로 passwordHash 등 민감 필드 *절대 응답에 안 흘림*.
+// Day 28: role + sellerProfile.verificationStatus 추가 — 헤더가 셀러/관리자 메뉴 분기에 사용.
+//   role 은 단일 컬럼이라 비용 0, sellerProfile 은 1:1 relation 한 줄 — 추가 RTT 없음 (Prisma 가 join).
 export async function getCurrentUser() {
   const session = await verifySession()
   if (!session) return null
@@ -32,6 +34,8 @@ export async function getCurrentUser() {
       name: true,
       profileImageUrl: true,
       createdAt: true,
+      role: true,
+      sellerProfile: { select: { verificationStatus: true } },
     },
   })
 }

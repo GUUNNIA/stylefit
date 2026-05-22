@@ -17,13 +17,16 @@ import {
   completeBookingAction,
 } from "./actions"
 import ReasonForm from "@/app/components/ReasonForm"
+import PageTabs from "@/app/components/PageTabs"
+import { SELLER_TABS } from "@/app/lib/page-tabs"
+import AlertBox from "@/app/components/AlertBox"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장* (?? fallback 불필요).
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
-  pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700" },
-  confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700" },
-  completed: { text: "완료", className: "bg-zinc-100 text-zinc-500" },
-  cancelled: { text: "취소됨", className: "bg-red-100 text-red-700" },
+  pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" },
+  confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  completed: { text: "완료", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" },
+  cancelled: { text: "취소됨", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
 }
 
 // 셀러 행동 우선순위 — pending 위, cancelled 아래
@@ -76,11 +79,12 @@ export default async function SellerBookingsPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
+      <PageTabs items={SELLER_TABS} />
       <h1 className="mb-8 text-3xl font-bold tracking-tight">받은 예약</h1>
 
       {sorted.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center">
-          <p className="text-zinc-600">아직 받은 예약이 없습니다.</p>
+        <div className="rounded-xl border border-line bg-surface p-10 text-center">
+          <p className="text-ink-muted">아직 받은 예약이 없습니다.</p>
         </div>
       ) : (
         <ul className="space-y-4">
@@ -92,24 +96,24 @@ export default async function SellerBookingsPage() {
             // *얇은 함수 추출 안 함* — Day 19 원칙. 다음 정리 Day 에 *세 분기 함수화* 후보.
             const status =
               b.status === BookingStatus.cancelled && b.rejectionReason
-                ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
+                ? { text: "거절됨", className: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" }
                 : b.status === BookingStatus.cancelled && b.cancellationReason
-                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700" }
+                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
                   : STATUS_LABEL[b.status]
             return (
               <li
                 key={b.id}
-                className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900"
+                className="rounded-xl border border-line bg-surface p-5 text-foreground"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
                       {b.service.category}
                     </p>
                     <p className="mt-1 text-lg font-semibold">
                       {b.service.title}
                     </p>
-                    <p className="mt-1 text-sm text-zinc-600">
+                    <p className="mt-1 text-sm text-ink-muted">
                       from {b.buyer.name}
                     </p>
                   </div>
@@ -120,23 +124,23 @@ export default async function SellerBookingsPage() {
                   </span>
                 </div>
 
-                <div className="mt-4 space-y-1 border-t border-zinc-100 pt-4 text-sm">
+                <div className="mt-4 space-y-1 border-t border-line pt-4 text-sm">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">희망 일시</span>
+                    <span className="text-ink-muted">희망 일시</span>
                     <span>{formatBookingDatetime(b.preferredDatetime)}</span>
                   </div>
                   {b.confirmedDatetime && (
                     <div className="flex items-baseline justify-between">
-                      <span className="text-zinc-600">확정 일시</span>
+                      <span className="text-ink-muted">확정 일시</span>
                       <span>{formatBookingDatetime(b.confirmedDatetime)}</span>
                     </div>
                   )}
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">소요</span>
+                    <span className="text-ink-muted">소요</span>
                     <span>{formatDuration(b.service.durationMinutes)}</span>
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">예상 금액</span>
+                    <span className="text-ink-muted">예상 금액</span>
                     <span className="font-semibold">
                       ₩{b.service.price.toLocaleString()}
                     </span>
@@ -144,33 +148,33 @@ export default async function SellerBookingsPage() {
                 </div>
 
                 {b.buyerMemo && (
-                  <p className="mt-3 rounded-md bg-zinc-50 p-3 text-sm text-zinc-700">
+                  <p className="mt-3 rounded-md bg-surface-muted p-3 text-sm text-ink-muted">
                     {b.buyerMemo}
                   </p>
                 )}
 
-                {/* 거절 사유 표시 (Day 21) — 자기가 입력한 사유 reminder (admin/services 패턴 일관) */}
+                {/* Day 28: AlertBox 추출 — buyer /bookings 와 대칭 */}
                 {b.status === BookingStatus.cancelled && b.rejectionReason && (
-                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                  <AlertBox variant="danger">
                     <strong className="font-semibold">거절 사유:</strong>{" "}
                     {b.rejectionReason}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* buyer 취소 사유 (Day 22) — 셀러가 *왜 취소됐는지* 알아야 함 (대칭 정보) */}
                 {b.status === BookingStatus.cancelled && b.cancellationReason && (
-                  <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+                  <AlertBox variant="warning">
                     <strong className="font-semibold">취소 사유:</strong>{" "}
                     {b.cancellationReason}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* 받은 후기 (Day 25) — completed + review 있음. buyer 측 *내 후기* 와 대칭. */}
                 {b.status === BookingStatus.completed && b.review && (
-                  <div className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                  <AlertBox variant="success">
                     <strong className="font-semibold">받은 후기:</strong>{" "}
                     {b.review.rating}점 — {b.review.content}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* 액션 — 상태별 분기:
@@ -178,12 +182,13 @@ export default async function SellerBookingsPage() {
                     confirmed → [완료 처리] (Day 24)
                     completed/cancelled → 액션 없음 */}
                 {b.status === BookingStatus.confirmed && (
-                  <div className="mt-4 flex border-t border-zinc-100 pt-4">
+                  <div className="mt-4 flex border-t border-line pt-4">
                     <form action={completeBookingAction}>
                       <input type="hidden" name="bookingId" value={b.id} />
+                      {/* 완료 처리 = secondary (흐름 진행 액션) */}
                       <button
                         type="submit"
-                        className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+                        className="rounded-lg border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent/10"
                       >
                         완료 처리
                       </button>
@@ -191,12 +196,13 @@ export default async function SellerBookingsPage() {
                   </div>
                 )}
                 {b.status === BookingStatus.pending && (
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
                     <form action={confirmBookingAction}>
                       <input type="hidden" name="bookingId" value={b.id} />
+                      {/* 확정 = primary (긍정 핵심 결정) */}
                       <button
                         type="submit"
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700"
+                        className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
                       >
                         확정
                       </button>
@@ -208,7 +214,7 @@ export default async function SellerBookingsPage() {
                       openLabel="거절하기"
                       submitLabel="거절 확정"
                       placeholder="거절 사유를 입력해 주세요. 구매자에게 표시됩니다."
-                      color="rose"
+                      tone="secondary"
                     />
                   </div>
                 )}

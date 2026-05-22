@@ -19,6 +19,8 @@ import { prisma } from "@/app/lib/prisma"
 import { AuditAction, AuditTargetType } from "@prisma/client"
 import { buildUrl, chipClass, validateEnumParam } from "@/app/lib/url-filter"
 import { extractMetadataString } from "@/app/lib/metadata"
+import PageTabs from "@/app/components/PageTabs"
+import { ADMIN_TABS } from "@/app/lib/page-tabs"
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   approved: "승인",
@@ -33,9 +35,9 @@ const TARGET_LABEL: Record<AuditTargetType, string> = {
 
 // 액션별 배지 색 — 의미 강조: 승인=초록(긍정), 반려=빨강(부정), 되돌림=회색(중립).
 const ACTION_BADGE: Record<AuditAction, string> = {
-  approved: "bg-emerald-50 text-emerald-700",
-  rejected: "bg-rose-50 text-rose-700",
-  reverted: "bg-zinc-100 text-zinc-700",
+  approved: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  rejected: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  reverted: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
 }
 
 // 칩 그룹 map 용 — enum 의 런타임 값 목록. validateEnumParam 호출에도 재사용.
@@ -139,15 +141,16 @@ export default async function AuditLogPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
+      <PageTabs items={ADMIN_TABS} />
       <h1 className="mb-2 text-3xl font-bold tracking-tight">감사 로그</h1>
-      <p className="mb-6 text-sm text-zinc-600">
+      <p className="mb-6 text-sm text-ink-muted">
         운영자 액션의 이력. {isFiltered ? `결과 ${totalCount}건` : `전체 ${totalCount}건`}.
       </p>
 
       {/* 필터 — 두 축 (action / targetType) 칩 그룹.
           한 축 변경 시 다른 축은 *보존* (Day 16 의 다축 상호 보존 UX). */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           액션
         </span>
         <Link
@@ -167,7 +170,7 @@ export default async function AuditLogPage({
         ))}
       </div>
       <div className="mb-8 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           대상
         </span>
         <Link
@@ -188,15 +191,15 @@ export default async function AuditLogPage({
       </div>
 
       {logs.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center text-zinc-600">
+        <div className="rounded-xl border border-line bg-surface p-10 text-center text-ink-muted">
           {isFiltered
             ? "이 조건의 로그가 없습니다."
             : "아직 기록된 액션이 없습니다."}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
           <table className="w-full text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <thead className="border-b border-line bg-surface-muted text-left text-xs font-medium uppercase tracking-wider text-ink-subtle">
               <tr>
                 <th className="px-4 py-3">시각</th>
                 <th className="px-4 py-3">액션</th>
@@ -205,12 +208,12 @@ export default async function AuditLogPage({
                 <th className="px-4 py-3">비고</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-900">
+            <tbody className="divide-y divide-line text-foreground">
               {logs.map((log) => {
                 const reason = extractMetadataString(log.metadata, "rejectionReason")
                 return (
                   <tr key={log.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                       {log.createdAt.toLocaleString("ko-KR", {
                         year: "numeric",
                         month: "2-digit",
@@ -229,10 +232,10 @@ export default async function AuditLogPage({
                     <td className="px-4 py-3">
                       {resolveTargetLabel(log.targetType, log.targetId)}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">
+                    <td className="px-4 py-3 text-ink-muted">
                       {log.actor.name}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">
+                    <td className="px-4 py-3 text-ink-muted">
                       {reason ?? ""}
                     </td>
                   </tr>
@@ -248,7 +251,7 @@ export default async function AuditLogPage({
           필터 칩과 *축 보존* 동일 패턴 (action/targetType 같이 넘김). */}
       {totalPages > 1 && (
         <nav className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-          <span className="text-zinc-600">
+          <span className="text-ink-muted">
             {(displayPage - 1) * PAGE_SIZE + 1}–{Math.min(displayPage * PAGE_SIZE, totalCount)} / {totalCount}건
           </span>
           <div className="flex flex-wrap items-center gap-1">
@@ -259,14 +262,14 @@ export default async function AuditLogPage({
                   targetType,
                   page: displayPage - 1 > 1 ? String(displayPage - 1) : undefined,
                 })}
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
               >
                 ← 이전
               </Link>
             ) : (
               <span
                 aria-disabled
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-300"
+                className="rounded-md border border-line px-3 py-1.5 text-ink-subtle/60"
               >
                 ← 이전
               </span>
@@ -283,8 +286,8 @@ export default async function AuditLogPage({
                 aria-current={p === displayPage ? "page" : undefined}
                 className={
                   p === displayPage
-                    ? "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white"
-                    : "rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                    ? "rounded-md bg-accent-bg px-3 py-1.5 font-medium text-white dark:text-zinc-900"
+                    : "rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
                 }
               >
                 {p}
@@ -298,14 +301,14 @@ export default async function AuditLogPage({
                   targetType,
                   page: String(displayPage + 1),
                 })}
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 transition-colors hover:bg-zinc-100"
+                className="rounded-md border border-line px-3 py-1.5 text-ink-muted transition-colors hover:bg-surface-muted"
               >
                 다음 →
               </Link>
             ) : (
               <span
                 aria-disabled
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-300"
+                className="rounded-md border border-line px-3 py-1.5 text-ink-subtle/60"
               >
                 다음 →
               </span>

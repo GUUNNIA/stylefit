@@ -62,7 +62,7 @@ export default async function EditServicePage({
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="mb-2 text-3xl font-bold tracking-tight">서비스 수정</h1>
-      <p className="mb-8 text-sm text-zinc-500">
+      <p className="mb-8 text-sm text-ink-subtle">
         수정한 내용은 운영자 재검증을 거쳐야 다시 노출됩니다.
       </p>
 

@@ -75,14 +75,14 @@ export default async function ServiceDetailPage({
       {/* ⑥ 명시적 뒤로가기 — from에 따라 라벨·href 동적. 어디로 갈지 명시 */}
       <Link
         href={backLink.href}
-        className="mb-4 inline-block text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+        className="mb-4 inline-block text-sm text-ink-muted transition-colors hover:text-foreground"
       >
         {backLink.label}
       </Link>
 
       {/* 서비스 정보 영역 */}
-      <article className="rounded-xl border border-zinc-200 bg-white p-8 text-zinc-900">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+      <article className="rounded-xl border border-line bg-surface p-8 text-foreground">
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           {service.category} ·{" "}
           {service.serviceType === "online" ? "온라인" : "오프라인"}
         </p>
@@ -91,20 +91,20 @@ export default async function ServiceDetailPage({
           {service.title}
         </h1>
 
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-sm text-ink-muted">
           by {service.sellerProfile.user.name}
         </p>
 
-        <div className="mt-6 flex items-baseline gap-4 border-t border-zinc-100 pt-6">
+        <div className="mt-6 flex items-baseline gap-4 border-t border-line pt-6">
           <span className="text-2xl font-bold">
             ₩{service.price.toLocaleString()}
           </span>
-          <span className="text-sm text-zinc-500">
+          <span className="text-sm text-ink-subtle">
             {formatDuration(service.durationMinutes)}
           </span>
         </div>
 
-        <div className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-zinc-700">
+        <div className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink-muted">
           {service.description}
         </div>
       </article>
@@ -119,14 +119,14 @@ export default async function ServiceDetailPage({
             durationMinutes={service.durationMinutes}
           />
         ) : (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center">
-            <p className="mb-4 text-zinc-700">
+          <div className="rounded-xl border border-line bg-surface p-6 text-center">
+            <p className="mb-4 text-ink-muted">
               예약하려면 먼저 로그인이 필요합니다.
             </p>
             {/* from으로 현재 URL 전달 → 로그인 성공 후 이 페이지로 복귀 */}
             <Link
               href={`/login?from=${encodeURIComponent(`/services/${service.id}`)}`}
-              className="inline-block rounded-lg bg-zinc-900 px-5 py-2.5 text-white transition-colors hover:bg-zinc-800"
+              className="inline-block rounded-lg bg-accent-bg px-5 py-2.5 font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
             >
               로그인하고 예약하기
             </Link>
@@ -137,16 +137,17 @@ export default async function ServiceDetailPage({
       {/* 후기 섹션 (Day 25) — 공개 후기. 결정 보조 정보라 예약 영역 *아래* 배치.
           후기 0개 → "아직 후기가 없습니다" fallback.
           평균 별점은 _avg.rating?.toFixed(1) — _avg 가 *후기 0개 시 null* 가능성. */}
-      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6">
+      <section className="mt-6 rounded-xl border border-line bg-surface p-6">
         <h2 className="text-xl font-bold tracking-tight">후기</h2>
 
         {reviewStats._count > 0 ? (
           <>
             <div className="mt-2 flex items-baseline gap-2">
+              {/* amber 는 *별점 의미색* 으로 라이트/다크 공통 유지 (액센트 인디고와 별개의 의미층) */}
               <span className="text-lg font-semibold text-amber-600">
                 ★ {reviewStats._avg.rating?.toFixed(1)}
               </span>
-              <span className="text-sm text-zinc-500">
+              <span className="text-sm text-ink-subtle">
                 후기 {reviewStats._count}개
               </span>
             </div>
@@ -155,18 +156,18 @@ export default async function ServiceDetailPage({
               {recentReviews.map((r) => (
                 <li
                   key={r.id}
-                  className="border-t border-zinc-100 pt-4 first:border-t-0 first:pt-0"
+                  className="border-t border-line pt-4 first:border-t-0 first:pt-0"
                 >
                   <div className="flex items-baseline justify-between">
-                    <span className="font-medium text-zinc-900">
+                    <span className="font-medium text-foreground">
                       {r.buyer.name}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-ink-subtle">
                       {r.createdAt.toLocaleDateString("ko-KR")}
                     </span>
                   </div>
                   <div className="mt-1 text-sm text-amber-600">★ {r.rating}</div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-ink-muted">
                     {r.content}
                   </p>
                 </li>
@@ -174,13 +175,13 @@ export default async function ServiceDetailPage({
             </ul>
 
             {reviewStats._count > 5 && (
-              <p className="mt-6 text-center text-xs text-zinc-500">
+              <p className="mt-6 text-center text-xs text-ink-subtle">
                 최신 5개만 표시 (전체 {reviewStats._count}개)
               </p>
             )}
           </>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">아직 후기가 없습니다.</p>
+          <p className="mt-4 text-sm text-ink-subtle">아직 후기가 없습니다.</p>
         )}
       </section>
     </main>

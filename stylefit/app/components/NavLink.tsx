@@ -12,15 +12,19 @@ import { usePathname } from "next/navigation"
 type NavLinkProps = {
   href: string
   children: React.ReactNode
-  // 정확 매칭 vs 시작 매칭. /services와 /services/123 둘 다 강조하려면 startsWith.
-  // 기본은 정확 매칭 — 너무 광범위한 강조를 피함.
-  matchPrefix?: boolean
+  // 정확 매칭 vs 시작 매칭. 기본은 정확 매칭 — 너무 광범위한 강조를 피함.
+  //   true   → href 자체로 startsWith (예: href="/services" → "/services/123" 도 활성)
+  //   string → *별도 prefix* 로 startsWith. href 와 active 범위가 *다를 때* 사용.
+  //            (예: href="/seller/services" matchPrefix="/seller" → 셀러 *모든* 페이지에서 활성)
+  matchPrefix?: boolean | string
 }
 
 export default function NavLink({ href, children, matchPrefix }: NavLinkProps) {
   const pathname = usePathname()
+  // matchPrefix 가 *문자열* 이면 그 값으로, *true* 면 href 로 startsWith.
+  // *falsy* 면 정확 매칭.
   const isActive = matchPrefix
-    ? pathname.startsWith(href)
+    ? pathname.startsWith(typeof matchPrefix === "string" ? matchPrefix : href)
     : pathname === href
 
   return (
@@ -28,8 +32,8 @@ export default function NavLink({ href, children, matchPrefix }: NavLinkProps) {
       href={href}
       className={
         isActive
-          ? "font-semibold text-zinc-900"
-          : "text-zinc-600 transition-colors hover:text-zinc-900"
+          ? "font-semibold text-accent"
+          : "text-ink-muted transition-colors hover:text-foreground"
       }
     >
       {children}

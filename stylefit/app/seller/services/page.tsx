@@ -12,6 +12,9 @@ import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import { setServiceVisibilityAction } from "./actions"
+import PageTabs from "@/app/components/PageTabs"
+import { SELLER_TABS } from "@/app/lib/page-tabs"
+import AlertBox from "@/app/components/AlertBox"
 
 // 검증 상태 라벨 (Day 13). approved는 *기본*이라 null — 라벨 안 그림.
 // pending/rejected만 셀러에게 시각적으로 표시.
@@ -19,8 +22,8 @@ const VERIFICATION_LABEL: Record<
   string,
   { text: string; className: string } | null
 > = {
-  pending: { text: "심사 중", className: "bg-amber-100 text-amber-700" },
-  rejected: { text: "반려됨", className: "bg-rose-100 text-rose-700" },
+  pending: { text: "심사 중", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  rejected: { text: "반려됨", className: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" },
   approved: null,
 }
 
@@ -41,28 +44,22 @@ export default async function SellerServicesPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
+      <PageTabs items={SELLER_TABS} />
+      {/* "활동 이력" inline 링크 제거 — PageTabs 의 "활동 이력" 탭으로 흡수됨 */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">내 서비스</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/seller/activity-log"
-            className="text-sm text-zinc-600 hover:text-zinc-900 hover:underline"
-          >
-            활동 이력
-          </Link>
-          <Link
-            href="/seller/services/new"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
-          >
-            + 새 서비스 등록
-          </Link>
-        </div>
+        <Link
+          href="/seller/services/new"
+          className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
+        >
+          + 새 서비스 등록
+        </Link>
       </div>
 
       {myServices.length === 0 ? (
         // 빈 상태 — B 단계에서 "새 서비스 등록" 버튼 추가 예정
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center">
-          <p className="text-zinc-600">아직 등록한 서비스가 없습니다.</p>
+        <div className="rounded-xl border border-line bg-surface p-10 text-center">
+          <p className="text-ink-muted">아직 등록한 서비스가 없습니다.</p>
         </div>
       ) : (
         <ul className="space-y-4">
@@ -79,11 +76,11 @@ export default async function SellerServicesPage() {
             return (
               <li
                 key={s.id}
-                className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900"
+                className="rounded-xl border border-line bg-surface p-5 text-foreground"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
                       {s.category} · {s.serviceType === "online" ? "온라인" : "오프라인"}
                     </p>
                     <p className="mt-1 text-lg font-semibold">{s.title}</p>
@@ -99,15 +96,15 @@ export default async function SellerServicesPage() {
                       </span>
                     )}
                     {pendingCount > 0 && (
-                      <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                      <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
                         대기 {pendingCount}
                       </span>
                     )}
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         s.isActive
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-zinc-100 text-zinc-500"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
                       }`}
                     >
                       {s.isActive ? "활성" : "비활성"}
@@ -115,19 +112,19 @@ export default async function SellerServicesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3 border-t border-zinc-100 pt-4 text-sm">
+                <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 text-sm">
                   <div>
-                    <p className="text-zinc-500">가격</p>
+                    <p className="text-ink-subtle">가격</p>
                     <p className="mt-0.5 font-semibold">
                       ₩{s.price.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-zinc-500">소요</p>
+                    <p className="text-ink-subtle">소요</p>
                     <p className="mt-0.5">{formatDuration(s.durationMinutes)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-500">받은 예약</p>
+                    <p className="text-ink-subtle">받은 예약</p>
                     <p className="mt-0.5">{s.bookings.length}건</p>
                   </div>
                 </div>
@@ -135,10 +132,10 @@ export default async function SellerServicesPage() {
                 {/* 반려 사유 박스 (Day 14) — rejected 상태일 때만 노출.
                     셀러한테 *왜 반려됐는지* 알려야 수정·재제출 행동 가능. */}
                 {s.verificationStatus === "rejected" && s.rejectionReason && (
-                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                  <AlertBox variant="danger">
                     <strong className="font-semibold">반려 사유:</strong>{" "}
                     {s.rejectionReason}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* 액션 바 (Day 15) — 카드 맨 아래 우측 정렬.
@@ -148,7 +145,7 @@ export default async function SellerServicesPage() {
                 <div className="mt-4 flex justify-end gap-2">
                   <Link
                     href={`/seller/services/${s.id}/edit`}
-                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+                    className="rounded-lg border border-line px-3 py-1.5 text-sm text-ink-muted transition-colors hover:bg-surface-muted"
                   >
                     수정
                   </Link>
@@ -161,12 +158,13 @@ export default async function SellerServicesPage() {
                       name="nextActive"
                       value={s.isActive ? "false" : "true"}
                     />
+                    {/* 숨기기 = secondary (visibility off, 보조), 다시 노출 = primary (visibility on, 강조) */}
                     <button
                       type="submit"
                       className={
                         s.isActive
-                          ? "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
-                          : "rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white transition-colors hover:bg-zinc-800"
+                          ? "rounded-lg border border-accent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent/10"
+                          : "rounded-lg bg-accent-bg px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
                       }
                     >
                       {s.isActive ? "숨기기" : "다시 노출"}

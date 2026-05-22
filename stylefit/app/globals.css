@@ -4,19 +4,43 @@
    next-themes 가 attribute="class" 옵션으로 html 에 .dark 를 토글함. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 의미 기반 색 토큰 — Day 28.
+   라이트와 다크에서 *같은 토큰을 다른 값으로 재정의* → @theme inline 으로 Tailwind 클래스 자동 생성.
+   사용 예: bg-surface / bg-surface-muted / border-line / text-ink-muted / text-ink-subtle. */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --surface: #ffffff;        /* 카드/패널 배경 — bg-white 대체 */
+  --surface-muted: #fafafa;  /* 입력 필드/테이블 헤더 — bg-zinc-50 대체 */
+  --line: #e4e4e7;           /* 경계선 — border-zinc-200 대체 (border 는 width 클래스와 이름 충돌 → line) */
+  --ink-muted: #3f3f46;      /* 보조 텍스트 — text-zinc-700 대체 */
+  --ink-subtle: #71717a;     /* 옅은 텍스트 — text-zinc-500 대체 */
+  --accent: #4338ca;         /* 글씨/보더용 — 인디고(indigo-700). NavLink active, PageTabs, secondary 라인 버튼. */
+  --accent-bg: #4338ca;      /* primary 버튼 배경용 — 라이트는 동일 (흰 글씨 대비 AAA). */
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --surface: #18181b;        /* zinc-900 — background 보다 약간 밝게 (layer 구분) */
+  --surface-muted: #27272a;  /* zinc-800 — surface 보다 한 단 더 (입력 필드 깊이) */
+  --line: #27272a;           /* zinc-800 — 다크에선 surface-muted 와 동색이 자연스러움 */
+  --ink-muted: #d4d4d8;      /* zinc-300 — 다크에선 옅은 잉크가 더 밝아야 가독 */
+  --ink-subtle: #a1a1aa;     /* zinc-400 */
+  --accent: #818cf8;         /* indigo-400 — 다크 통일 톤 (Day 28). 글씨/배경 모두 같은 값. */
+  --accent-bg: #818cf8;      /* indigo-400 — primary 배경. 검정 글씨와 대비 6.5:1 (AA Normal). */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--line);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

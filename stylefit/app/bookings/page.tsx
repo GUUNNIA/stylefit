@@ -17,13 +17,15 @@ import { BookingStatus } from "@prisma/client"
 import { cancelBookingAction } from "./actions"
 import ReasonForm from "@/app/components/ReasonForm"
 import ReviewForm from "./ReviewForm"
+import AlertBox from "@/app/components/AlertBox"
 
 // status → 한국어 라벨 + 색. Day 19 패턴 — enum 키화로 *모든 값 정의 보장*.
+// 다크 분기: bg 는 *진한 색 + 투명도*, text 는 *옅은 톤* (대비 유지). Day 28.
 const STATUS_LABEL: Record<BookingStatus, { text: string; className: string }> = {
-  pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700" },
-  confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700" },
-  completed: { text: "완료", className: "bg-zinc-100 text-zinc-500" },
-  cancelled: { text: "취소됨", className: "bg-red-100 text-red-700" },
+  pending: { text: "확인 대기", className: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" },
+  confirmed: { text: "확정됨", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  completed: { text: "완료", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" },
+  cancelled: { text: "취소됨", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
 }
 
 function formatBookingDatetime(d: Date): string {
@@ -79,11 +81,11 @@ export default async function BookingsPage({
 
       {bookings.length === 0 ? (
         // 빈 상태
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center">
-          <p className="mb-4 text-zinc-600">아직 예약한 서비스가 없습니다.</p>
+        <div className="rounded-xl border border-line bg-surface p-10 text-center">
+          <p className="mb-4 text-ink-muted">아직 예약한 서비스가 없습니다.</p>
           <Link
             href="/services"
-            className="inline-block rounded-lg bg-zinc-900 px-5 py-2.5 text-sm text-white transition-colors hover:bg-zinc-800"
+            className="inline-block rounded-lg bg-accent-bg px-5 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
           >
             서비스 둘러보기
           </Link>
@@ -99,9 +101,9 @@ export default async function BookingsPage({
             // 다음 정리 Day 에 *세 분기 함수화* 후보.
             const status =
               b.status === BookingStatus.cancelled && b.rejectionReason
-                ? { text: "거절됨", className: "bg-rose-100 text-rose-700" }
+                ? { text: "거절됨", className: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" }
                 : b.status === BookingStatus.cancelled && b.cancellationReason
-                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700" }
+                  ? { text: "취소됨", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
                   : STATUS_LABEL[b.status]
             return (
               // Day 22: 카드 구조 변경 — *Link 안에 form 충돌 회피* 위해
@@ -109,7 +111,7 @@ export default async function BookingsPage({
               //   pending 카드만 액션 영역 추가 — 그 외 상태는 단일 Link 카드.
               <li
                 key={b.id}
-                className="overflow-hidden rounded-xl border border-zinc-200 bg-white text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm"
+                className="overflow-hidden rounded-xl border border-line bg-surface text-foreground transition hover:shadow-sm"
               >
                 {/* ?from=/bookings → 상세 페이지의 뒤로가기가 "← 내 예약으로"로 동적 표시 */}
                 <Link
@@ -118,13 +120,13 @@ export default async function BookingsPage({
                 >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
                       {b.service.category}
                     </p>
                     <p className="mt-1 text-lg font-semibold">
                       {b.service.title}
                     </p>
-                    <p className="mt-1 text-sm text-zinc-600">
+                    <p className="mt-1 text-sm text-ink-muted">
                       by {b.sellerProfile.user.name}
                     </p>
                   </div>
@@ -135,17 +137,17 @@ export default async function BookingsPage({
                   </span>
                 </div>
 
-                <div className="mt-4 space-y-1 border-t border-zinc-100 pt-4 text-sm">
+                <div className="mt-4 space-y-1 border-t border-line pt-4 text-sm">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">희망 일시</span>
+                    <span className="text-ink-muted">희망 일시</span>
                     <span>{formatBookingDatetime(b.preferredDatetime)}</span>
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">소요</span>
+                    <span className="text-ink-muted">소요</span>
                     <span>{formatDuration(b.service.durationMinutes)}</span>
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-zinc-600">예상 금액</span>
+                    <span className="text-ink-muted">예상 금액</span>
                     <span className="font-semibold">
                       ₩{b.service.price.toLocaleString()}
                     </span>
@@ -153,33 +155,33 @@ export default async function BookingsPage({
                 </div>
 
                 {b.buyerMemo && (
-                  <p className="mt-3 rounded-md bg-zinc-50 p-3 text-sm text-zinc-700">
+                  <p className="mt-3 rounded-md bg-surface-muted p-3 text-sm text-ink-muted">
                     {b.buyerMemo}
                   </p>
                 )}
 
-                {/* 셀러 거절 사유 (Day 21) */}
+                {/* Day 28: AlertBox 추출 — bg-surface-muted + 의미색 아이콘/텍스트. 버튼(opacity surface)과 패턴 차별. */}
                 {b.status === BookingStatus.cancelled && b.rejectionReason && (
-                  <div className="mt-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+                  <AlertBox variant="danger">
                     <strong className="font-semibold">거절 사유:</strong>{" "}
                     {b.rejectionReason}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* 내 취소 사유 (Day 22) — 본인 액션 reminder (Day 21 정신) */}
                 {b.status === BookingStatus.cancelled && b.cancellationReason && (
-                  <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+                  <AlertBox variant="warning">
                     <strong className="font-semibold">취소 사유:</strong>{" "}
                     {b.cancellationReason}
-                  </div>
+                  </AlertBox>
                 )}
 
                 {/* 내 후기 (Day 24) — completed + review 있음. *본인 액션 reminder* 패턴 일관. */}
                 {b.status === BookingStatus.completed && b.review && (
-                  <div className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+                  <AlertBox variant="success">
                     <strong className="font-semibold">내 후기:</strong>{" "}
                     {b.review.rating}점 — {b.review.content}
-                  </div>
+                  </AlertBox>
                 )}
                 </Link>
 
@@ -187,7 +189,7 @@ export default async function BookingsPage({
                     pending → [취소하기]
                     completed + review 없음 → [후기 작성] */}
                 {b.status === BookingStatus.pending && (
-                  <div className="border-t border-zinc-100 px-5 py-3">
+                  <div className="border-t border-line px-5 py-3">
                     <ReasonForm
                       action={cancelBookingAction}
                       idName="bookingId"
@@ -196,12 +198,12 @@ export default async function BookingsPage({
                       submitLabel="취소 확정"
                       placeholder="취소 사유를 입력해 주세요. 셀러에게 표시됩니다."
                       closeLabel="닫기"
-                      color="amber"
+                      tone="primary"
                     />
                   </div>
                 )}
                 {b.status === BookingStatus.completed && !b.review && (
-                  <div className="border-t border-zinc-100 px-5 py-3">
+                  <div className="border-t border-line px-5 py-3">
                     <ReviewForm bookingId={b.id} />
                   </div>
                 )}

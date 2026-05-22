@@ -145,11 +145,11 @@ export default async function ServicesPage({
             defaultValue={q}
             maxLength={100}
             placeholder="제목·설명에서 검색"
-            className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
           <button
             type="submit"
-            className="rounded-lg bg-zinc-900 px-5 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
+            className="rounded-lg bg-accent-bg px-5 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
           >
             검색
           </button>
@@ -212,7 +212,7 @@ function Section({
     <section className="mb-12">
       <h2 className="mb-5 text-xl font-semibold">{title}</h2>
       {services.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center text-zinc-500">
+        <div className="rounded-xl border border-line bg-surface p-10 text-center text-ink-subtle">
           {emptyMessage}
         </div>
       ) : (

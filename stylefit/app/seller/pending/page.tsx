@@ -41,22 +41,23 @@ export default async function SellerPendingPage() {
       </h1>
 
       {profile.verificationStatus === "pending" && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
           <p className="text-lg font-semibold">심사 중입니다.</p>
           <p className="mt-2 text-sm">
             운영자가 셀러 정보를 검토하고 있습니다. 승인되면 셀러 페이지에 접근할 수 있어요.
           </p>
-          <p className="mt-2 text-xs text-amber-700">
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
             ※ 학습용 프로젝트 — 실제 이메일 알림은 추후 도입 예정.
           </p>
         </div>
       )}
 
       {profile.verificationStatus === "rejected" && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-900">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-900 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-200">
           <p className="text-lg font-semibold">셀러 등록이 반려되었습니다.</p>
           {profile.rejectionReason && (
-            <div className="mt-3 rounded-md bg-white p-3 text-sm text-rose-800">
+            // 안내 박스 안의 *내부 박스* — 라이트는 흰, 다크는 더 진한 rose 톤으로 layer 구분
+            <div className="mt-3 rounded-md bg-white p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
               <strong className="font-semibold">사유:</strong>{" "}
               {profile.rejectionReason}
             </div>
@@ -64,7 +65,7 @@ export default async function SellerPendingPage() {
           <p className="mt-3 text-sm">
             반려 사유를 확인하시고 추후 셀러 정보 수정·재제출 기능을 통해 다시 신청해 주세요.
           </p>
-          <p className="mt-2 text-xs text-rose-700">
+          <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
             ※ 셀러 정보 수정·재제출은 Day 15+에 도입 예정.
           </p>
         </div>

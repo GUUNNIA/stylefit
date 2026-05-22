@@ -69,7 +69,7 @@ export default function EditServiceForm({
           maxLength={80}
           defaultValue={v.title}
           placeholder="예: 포트폴리오 리뷰 1:1"
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         />
       </div>
 
@@ -88,7 +88,7 @@ export default function EditServiceForm({
           maxLength={500}
           defaultValue={v.description}
           placeholder="이 서비스가 무엇을 제공하는지 간단히 설명해 주세요."
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         />
       </div>
 
@@ -127,7 +127,7 @@ export default function EditServiceForm({
           required
           key={v.category || "initial"}
           defaultValue={v.category}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         >
           <option value="" disabled>
             선택해 주세요
@@ -154,7 +154,7 @@ export default function EditServiceForm({
           onKeyDown={blockNonInteger}
           defaultValue={v.price}
           placeholder="50000"
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         />
       </div>
 
@@ -172,9 +172,9 @@ export default function EditServiceForm({
               onKeyDown={blockNonInteger}
               defaultValue={v.days}
               placeholder="0"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
             />
-            <p className="mt-1 text-center text-xs text-zinc-500">일</p>
+            <p className="mt-1 text-center text-xs text-ink-subtle">일</p>
           </div>
           <div>
             <input
@@ -187,9 +187,9 @@ export default function EditServiceForm({
               onKeyDown={blockNonInteger}
               defaultValue={v.hours}
               placeholder="0"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
             />
-            <p className="mt-1 text-center text-xs text-zinc-500">시간</p>
+            <p className="mt-1 text-center text-xs text-ink-subtle">시간</p>
           </div>
           <div>
             <input
@@ -202,9 +202,9 @@ export default function EditServiceForm({
               onKeyDown={blockNonInteger}
               defaultValue={v.minutes}
               placeholder="0"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+              className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
             />
-            <p className="mt-1 text-center text-xs text-zinc-500">분 (15분 단위)</p>
+            <p className="mt-1 text-center text-xs text-ink-subtle">분 (15분 단위)</p>
           </div>
         </div>
       </div>
@@ -216,12 +216,12 @@ export default function EditServiceForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-foreground py-2.5 text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
+        className="w-full rounded-lg bg-accent-bg py-2.5 font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60 dark:text-zinc-900"
       >
         {pending ? "저장 중..." : "수정 저장"}
       </button>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-subtle">
         수정 후엔 *심사 중* 상태로 돌아가 운영자 재검증을 거칩니다.
       </p>
     </form>

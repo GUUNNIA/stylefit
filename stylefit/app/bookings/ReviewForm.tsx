@@ -18,11 +18,12 @@ export default function ReviewForm({ bookingId }: { bookingId: number }) {
   const [open, setOpen] = useState(false)
 
   if (!open) {
+    // primary (인디고 surface) — completed booking 의 *유일+긍정* 액션
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-emerald-300 px-4 py-2 text-sm text-emerald-700 transition-colors hover:bg-emerald-50"
+        className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
       >
         후기 작성
       </button>
@@ -33,7 +34,7 @@ export default function ReviewForm({ bookingId }: { bookingId: number }) {
     <form action={createReviewAction} className="w-full space-y-3">
       <input type="hidden" name="bookingId" value={bookingId} />
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-zinc-700">별점</legend>
+        <legend className="text-sm font-medium text-ink-muted">별점</legend>
         <div className="flex flex-wrap gap-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <label
@@ -45,7 +46,7 @@ export default function ReviewForm({ bookingId }: { bookingId: number }) {
                 name="rating"
                 value={n}
                 required
-                className="text-zinc-900 focus:ring-zinc-400"
+                className="text-accent focus:ring-accent"
               />
               <span>{n}점</span>
             </label>
@@ -58,19 +59,20 @@ export default function ReviewForm({ bookingId }: { bookingId: number }) {
         minLength={1}
         rows={3}
         placeholder="서비스에 대한 후기를 작성해 주세요. 다른 분들의 선택에 도움이 됩니다."
-        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+        className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-foreground outline-none focus:border-ink-subtle"
       />
       <div className="flex gap-2">
+        {/* 후기 등록 = primary (확정은 항상 강조) */}
         <button
           type="submit"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-700"
+          className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
         >
           후기 등록
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+          className="rounded-lg border border-line px-4 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-muted"
         >
           닫기
         </button>

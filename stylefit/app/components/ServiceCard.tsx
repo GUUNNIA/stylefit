@@ -27,8 +27,8 @@ export default function ServiceCard({ service: s }: { service: ServiceCardData }
     // 카드 전체를 Link로 감쌈 → 카드 어디를 눌러도 상세 페이지 이동.
     // article(시맘틱)은 그대로 안에 유지.
     <Link href={`/services/${s.id}`} className="block">
-      <article className="rounded-xl border border-zinc-200 bg-white p-5 text-zinc-900 transition hover:border-zinc-300 hover:shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+      <article className="rounded-xl border border-line bg-surface p-5 text-foreground transition hover:shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           {s.category} · {s.serviceType === "online" ? "온라인" : "오프라인"}
         </p>
 
@@ -36,15 +36,15 @@ export default function ServiceCard({ service: s }: { service: ServiceCardData }
           {s.title}
         </h2>
 
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="mt-1 text-sm text-ink-muted">
           by {s.sellerProfile.user.name}
         </p>
 
-        <div className="mt-4 flex items-baseline justify-between border-t border-zinc-100 pt-4">
+        <div className="mt-4 flex items-baseline justify-between border-t border-line pt-4">
           <span className="text-base font-semibold">
             ₩{s.price.toLocaleString()}
           </span>
-          <span className="text-sm text-zinc-500">
+          <span className="text-sm text-ink-subtle">
             {formatDuration(s.durationMinutes)}
           </span>
         </div>

@@ -38,7 +38,7 @@ export default function LoginForm({ from }: { from?: string }) {
           autoComplete="email"
           key={state?.email ?? "initial"}
           defaultValue={state?.email ?? ""}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         />
       </div>
 
@@ -52,7 +52,7 @@ export default function LoginForm({ from }: { from?: string }) {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
         />
       </div>
 
@@ -63,14 +63,14 @@ export default function LoginForm({ from }: { from?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-foreground py-2.5 text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
+        className="w-full rounded-lg bg-accent-bg py-2.5 font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60 dark:text-zinc-900"
       >
         {pending ? "로그인 중..." : "로그인"}
       </button>
 
-      <p className="mt-6 text-sm text-zinc-500">
+      <p className="mt-6 text-sm text-ink-subtle">
         아직 계정이 없으신가요?{" "}
-        <Link href={signupHref} className="font-medium text-zinc-900 underline">
+        <Link href={signupHref} className="font-medium text-foreground underline">
           회원가입
         </Link>
       </p>

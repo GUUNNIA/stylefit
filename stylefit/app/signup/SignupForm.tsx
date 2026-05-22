@@ -34,7 +34,7 @@ export default function SignupForm({ from }: { from?: string }) {
             autoComplete="email"
             key={state?.values?.email ?? "initial"}
             defaultValue={state?.values?.email ?? ""}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
           {state?.fieldErrors?.email && (
             <p className="mt-1 text-xs text-red-600">{state.fieldErrors.email}</p>
@@ -52,7 +52,7 @@ export default function SignupForm({ from }: { from?: string }) {
             required
             autoComplete="new-password"
             minLength={8}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
           {state?.fieldErrors?.password && (
             <p className="mt-1 text-xs text-red-600">{state.fieldErrors.password}</p>
@@ -71,7 +71,7 @@ export default function SignupForm({ from }: { from?: string }) {
             maxLength={20}
             key={state?.values?.name ?? "initial"}
             defaultValue={state?.values?.name ?? ""}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
           {state?.fieldErrors?.name && (
             <p className="mt-1 text-xs text-red-600">{state.fieldErrors.name}</p>
@@ -84,7 +84,7 @@ export default function SignupForm({ from }: { from?: string }) {
             name="agreedTerms"
             type="checkbox"
             required
-            className="h-4 w-4 rounded border-zinc-300"
+            className="h-4 w-4 rounded border-line"
           />
           <label htmlFor="agreedTerms" className="text-sm">
             이용약관에 동의합니다.
@@ -101,15 +101,15 @@ export default function SignupForm({ from }: { from?: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-foreground py-2.5 text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
+          className="w-full rounded-lg bg-accent-bg py-2.5 font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60 dark:text-zinc-900"
         >
           {pending ? "가입 중..." : "회원가입"}
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-zinc-500">
+      <p className="mt-6 text-sm text-ink-subtle">
         이미 계정이 있으신가요?{" "}
-        <Link href={loginHref} className="font-medium text-zinc-900 underline">
+        <Link href={loginHref} className="font-medium text-foreground underline">
           로그인
         </Link>
       </p>

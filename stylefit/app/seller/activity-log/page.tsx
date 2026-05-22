@@ -22,6 +22,8 @@ import {
   extractMetadataBoolean,
   extractMetadataString,
 } from "@/app/lib/metadata"
+import PageTabs from "@/app/components/PageTabs"
+import { SELLER_TABS } from "@/app/lib/page-tabs"
 
 // 칩 필터용 라벨 — toggled 는 한 단어 (방향은 badge 에서 분리 표시)
 const ACTIVITY_LABEL: Record<SellerActivity, string> = {
@@ -36,12 +38,12 @@ const ACTIVITY_LABEL: Record<SellerActivity, string> = {
 // 활동별 기본 배지 색. toggled 는 metadata.to 따라 아래에서 분기.
 //   stone (bookingCompleted) — *마침 의미의 중립 + 따뜻한 회색*. emerald (시작) 과 시각 차별.
 const ACTIVITY_BADGE: Record<SellerActivity, string> = {
-  created: "bg-emerald-50 text-emerald-700",
-  updated: "bg-sky-50 text-sky-700",
-  toggled: "bg-zinc-100 text-zinc-700",
-  bookingConfirmed: "bg-emerald-50 text-emerald-700",
-  bookingRejected: "bg-rose-50 text-rose-700",
-  bookingCompleted: "bg-stone-100 text-stone-700",
+  created: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  updated: "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  toggled: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  bookingConfirmed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  bookingRejected: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  bookingCompleted: "bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300",
 }
 
 // 명시 타입 — Object.values 가 unknown[] 으로 추론되어 validateEnumParam 시그니처와 안 맞음 (Day 19 학습).
@@ -77,14 +79,15 @@ export default async function SellerActivityLogPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
+      <PageTabs items={SELLER_TABS} />
       <h1 className="mb-2 text-3xl font-bold tracking-tight">활동 이력</h1>
-      <p className="mb-6 text-sm text-zinc-600">
+      <p className="mb-6 text-sm text-ink-muted">
         내 서비스의 변경 이력.{" "}
         {isFiltered ? `결과 ${logs.length}건` : `최신 ${logs.length}건 표시`}.
       </p>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
           활동
         </span>
         <Link
@@ -105,15 +108,15 @@ export default async function SellerActivityLogPage({
       </div>
 
       {logs.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center text-zinc-600">
+        <div className="rounded-xl border border-line bg-surface p-10 text-center text-ink-muted">
           {isFiltered
             ? "이 조건의 활동 이력이 없습니다."
             : "아직 기록된 활동이 없습니다. 서비스를 등록·수정하면 표시됩니다."}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
           <table className="w-full text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <thead className="border-b border-line bg-surface-muted text-left text-xs font-medium uppercase tracking-wider text-ink-subtle">
               <tr>
                 <th className="px-4 py-3">시각</th>
                 <th className="px-4 py-3">활동</th>
@@ -121,7 +124,7 @@ export default async function SellerActivityLogPage({
                 <th className="px-4 py-3">비고</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 text-zinc-900">
+            <tbody className="divide-y divide-line text-foreground">
               {logs.map((log) => {
                 // toggled 는 metadata.to 로 *방향* (활성화/비활성화) 표시.
                 // 다른 활동(created/updated) 은 metadata 안 봄.
@@ -137,9 +140,9 @@ export default async function SellerActivityLogPage({
                       : ACTIVITY_LABEL[log.activity]
                 const badgeClass =
                   toggledTo === true
-                    ? "bg-emerald-50 text-emerald-700"
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                     : toggledTo === false
-                      ? "bg-zinc-100 text-zinc-700"
+                      ? "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                       : ACTIVITY_BADGE[log.activity]
 
                 // 비고 — bookingRejected 의 metadata.rejectionReason 만 (Day 21).
@@ -151,7 +154,7 @@ export default async function SellerActivityLogPage({
 
                 return (
                   <tr key={log.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                       {log.createdAt.toLocaleString("ko-KR", {
                         year: "numeric",
                         month: "2-digit",
@@ -170,12 +173,12 @@ export default async function SellerActivityLogPage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/seller/services/${log.service.id}/edit`}
-                        className="text-zinc-900 hover:underline"
+                        className="text-foreground hover:underline"
                       >
                         {log.service.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{reason ?? ""}</td>
+                    <td className="px-4 py-3 text-ink-muted">{reason ?? ""}</td>
                   </tr>
                 )
               })}

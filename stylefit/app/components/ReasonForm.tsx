@@ -35,20 +35,20 @@ type ReasonFormProps = {
   submitLabel: string
   placeholder: string
   closeLabel?: string
-  color?: "rose" | "amber"
+  // Day 28: 의미색 폐기. 위계는 *형태* 로만 구분.
+  //   primary  = 핵심/유일 액션 (인디고 surface) — buyer 취소 같이
+  //   secondary = 보조 부정 액션 (인디고 라인) — 거절/반려 같이
+  tone?: "primary" | "secondary"
 }
 
-// 정적 매핑 — Tailwind purge 안전. 새 색 추가 시 여기에 키 추가.
-const COLOR_CLASSES = {
-  rose: {
-    openButton: "border-rose-300 text-rose-700 hover:bg-rose-50",
-    submitButton: "bg-rose-600 hover:bg-rose-700",
-  },
-  amber: {
-    openButton: "border-amber-300 text-amber-700 hover:bg-amber-50",
-    submitButton: "bg-amber-600 hover:bg-amber-700",
-  },
-} as const
+// Day 28: 의미색 제거. 모든 액션 = 인디고. 위계는 형태로.
+//   primary  = 인디고 채워진 surface
+//   secondary = 인디고 라인 (보더 + 옅은 호버)
+// submit 은 *항상 primary* — 폼 안 확정 액션은 강조.
+const TONE_OPEN: Record<"primary" | "secondary", string> = {
+  primary: "bg-accent-bg font-medium text-white hover:opacity-90 dark:text-zinc-900",
+  secondary: "border border-accent text-accent hover:bg-accent/10",
+}
 
 export default function ReasonForm({
   action,
@@ -58,17 +58,16 @@ export default function ReasonForm({
   submitLabel,
   placeholder,
   closeLabel = "취소",
-  color = "rose",
+  tone = "secondary",
 }: ReasonFormProps) {
   const [open, setOpen] = useState(false)
-  const cls = COLOR_CLASSES[color]
 
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`rounded-lg border px-4 py-2 text-sm transition-colors ${cls.openButton}`}
+        className={`rounded-lg px-4 py-2 text-sm transition-colors ${TONE_OPEN[tone]}`}
       >
         {openLabel}
       </button>
@@ -84,19 +83,21 @@ export default function ReasonForm({
         minLength={1}
         rows={2}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+        className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-foreground outline-none focus:border-ink-subtle"
       />
       <div className="flex gap-2">
+        {/* submit = primary 인디고 (확정은 항상 강조) */}
         <button
           type="submit"
-          className={`rounded-lg px-4 py-2 text-sm text-white transition-colors ${cls.submitButton}`}
+          className="rounded-lg bg-accent-bg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:text-zinc-900"
         >
           {submitLabel}
         </button>
+        {/* 닫기 = tertiary (모노톤 라인) — 폼 흐름 보조 */}
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
+          className="rounded-lg border border-line px-4 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-muted"
         >
           {closeLabel}
         </button>

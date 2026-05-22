@@ -27,7 +27,7 @@ export default function ThemeToggle() {
     return (
       <div
         aria-hidden
-        className="h-9 w-9 rounded-md border border-zinc-200 dark:border-zinc-800"
+        className="h-9 w-9 rounded-md border border-line"
       />
     )
   }
@@ -40,7 +40,7 @@ export default function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
       title={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
-      className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:bg-surface-muted"
     >
       {isDark ? (
         // Sun 아이콘 — 다크일 때 보임 (클릭하면 라이트로)

@@ -50,9 +50,9 @@ export default function BookingForm({
   }, [])
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 text-zinc-900">
+    <div className="rounded-xl border border-line bg-surface p-6 text-foreground">
       {/* ④ 폼 컨텍스트 — "{서비스 제목} 예약" */}
-      <p className="mb-1 text-xs text-zinc-500">예약 서비스</p>
+      <p className="mb-1 text-xs text-ink-subtle">예약 서비스</p>
       <h2 className="mb-4 text-lg font-semibold">{serviceTitle}</h2>
 
       <form action={formAction} className="space-y-4">
@@ -66,19 +66,20 @@ export default function BookingForm({
           >
             희망 일시
           </label>
+          {/* 입력 필드는 *카드 안* 이라 surface-muted (한 단 깊이) — 카드 surface 와 시각 분리 */}
           <input
             id="preferredDatetime"
             name="preferredDatetime"
             type="datetime-local"
             required
             min={minDate}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
         </div>
 
         <div>
           <label htmlFor="buyerMemo" className="mb-1 block text-sm font-medium">
-            셀러에게 전할 메모 <span className="text-zinc-400">(선택)</span>
+            셀러에게 전할 메모 <span className="text-ink-subtle">(선택)</span>
           </label>
           <textarea
             id="buyerMemo"
@@ -86,17 +87,17 @@ export default function BookingForm({
             rows={3}
             maxLength={500}
             placeholder="기대하는 내용이나 사전 정보가 있으면 알려주세요."
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+            className="w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-foreground outline-none focus:border-ink-subtle"
           />
         </div>
 
-        <div className="space-y-1 border-t border-zinc-100 pt-4 text-sm">
+        <div className="space-y-1 border-t border-line pt-4 text-sm">
           <div className="flex items-baseline justify-between">
-            <span className="text-zinc-600">예상 소요</span>
+            <span className="text-ink-muted">예상 소요</span>
             <span>{formatDuration(durationMinutes)}</span>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-zinc-600">예상 금액</span>
+            <span className="text-ink-muted">예상 금액</span>
             <span className="text-lg font-semibold">
               ₩{price.toLocaleString()}
             </span>
@@ -107,15 +108,16 @@ export default function BookingForm({
           <p className="text-sm text-red-600">{state.error}</p>
         )}
 
+        {/* primary 버튼 — Header/services 패턴과 동일한 opacity hover 로 통일 */}
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-foreground py-2.5 text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
+          className="w-full rounded-lg bg-accent-bg py-2.5 font-medium text-white transition-colors hover:opacity-90 disabled:opacity-60 dark:text-zinc-900"
         >
           {pending ? "예약 처리 중..." : "예약하기"}
         </button>
 
-        <p className="text-center text-xs text-zinc-500">
+        <p className="text-center text-xs text-ink-subtle">
           예약은 셀러 확인 후 확정됩니다. 결제는 확정 후에 진행됩니다.
         </p>
       </form>
