@@ -13,6 +13,7 @@ import { prisma } from "@/app/lib/prisma"
 import { verifySession } from "@/app/lib/dal"
 import { formatDuration } from "@/app/lib/format"
 import SuccessBanner from "@/app/components/SuccessBanner"
+import PagePoller from "@/app/components/PagePoller"
 import { BookingStatus } from "@prisma/client"
 import { cancelBookingAction } from "./actions"
 import ReasonForm from "@/app/components/ReasonForm"
@@ -66,12 +67,31 @@ export default async function BookingsPage({
       },
       // Day 24: 내 후기 (1:1, 선택). completed booking 의 *후기 작성 여부* 분기에 사용.
       review: { select: { rating: true, content: true } },
+      // Day 31: 안 읽은 메시지 수 — *상대방 (seller)* 이 보낸 isRead=false 만 카운트.
+      // _count with where (filtered relation count) — Prisma 5+ 정식 기능.
+      messageThread: {
+        select: {
+          _count: {
+            select: {
+              messages: {
+                where: {
+                  isRead: false,
+                  senderId: { not: session.userId },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   })
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
+      {/* Day 31: 실시간 뱃지 갱신 — 안 읽은 메시지 수가 5초마다 자동 동기화. */}
+      <PagePoller />
+
       {/* 예약 성공 후 redirect 시 ?success=1 → 한 번 표시. URL이 바뀌면 자연스럽게 사라짐 */}
       {success && (
         <SuccessBanner message="예약이 접수되었습니다. 셀러 확인 후 확정됩니다." />
@@ -208,9 +228,15 @@ export default async function BookingsPage({
                   </div>
                   <Link
                     href={`/bookings/${b.id}/messages`}
-                    className="text-sm text-accent hover:underline"
+                    className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
                   >
                     메시지 →
+                    {/* Day 31: 안 읽은 메시지 N 뱃지 — 카운트 > 0 일 때만 표시. */}
+                    {(b.messageThread?._count.messages ?? 0) > 0 && (
+                      <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-bg px-1.5 text-xs font-medium text-white no-underline dark:text-zinc-900">
+                        {b.messageThread!._count.messages}
+                      </span>
+                    )}
                   </Link>
                 </div>
               </li>

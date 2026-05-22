@@ -14,8 +14,9 @@ import { notFound, redirect } from "next/navigation"
 import { prisma } from "@/app/lib/prisma"
 import { verifySession } from "@/app/lib/dal"
 import MessageThread from "@/app/components/MessageThread"
-import MessagesPoller from "@/app/components/MessagesPoller"
-import { sendMessageAction } from "./actions"
+import PagePoller from "@/app/components/PagePoller"
+import MarkAsReadOnMount from "@/app/components/MarkAsReadOnMount"
+import { sendMessageAction, markAsReadAction } from "./actions"
 
 export default async function BuyerMessagesPage({
   params,
@@ -48,6 +49,9 @@ export default async function BuyerMessagesPage({
   })
   if (!booking) notFound()
 
+  // 읽음 처리는 *Server Component render 중* 못 함 (Next.js 16+ 차단).
+  // → MarkAsReadOnMount 가 Client 측 useEffect 에서 markAsReadAction 호출.
+
   const messages = booking.messageThread?.messages ?? []
 
   return (
@@ -72,7 +76,8 @@ export default async function BuyerMessagesPage({
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight">메시지</h1>
 
-      <MessagesPoller />
+      <PagePoller />
+      <MarkAsReadOnMount bookingId={booking.id} action={markAsReadAction} />
       <MessageThread
         bookingId={booking.id}
         messages={messages}

@@ -37,3 +37,32 @@ export async function sendMessageAction(formData: FormData) {
 
   revalidatePath(`/seller/bookings/${bookingId}/messages`)
 }
+
+// Day 31 — 메시지 페이지 마운트 시 *상대방 (buyer)* 메시지 읽음 처리.
+// buyer actions 의 대칭형 — sellerProfile.userId 기준. /seller/bookings 목록 캐시 무효화.
+export async function markAsReadAction(bookingId: number) {
+  const sellerProfile = await requireSellerProfile("/seller/bookings")
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      sellerProfileId: true,
+      messageThread: { select: { id: true } },
+    },
+  })
+  if (!booking || booking.sellerProfileId !== sellerProfile.id) return
+  if (!booking.messageThread) return
+
+  const result = await prisma.message.updateMany({
+    where: {
+      threadId: booking.messageThread.id,
+      senderId: { not: sellerProfile.userId },
+      isRead: false,
+    },
+    data: { isRead: true },
+  })
+
+  if (result.count > 0) {
+    revalidatePath("/seller/bookings")
+  }
+}

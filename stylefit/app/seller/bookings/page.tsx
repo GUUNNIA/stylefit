@@ -10,6 +10,7 @@
 import Link from "next/link"
 import { prisma } from "@/app/lib/prisma"
 import { requireSellerProfile } from "@/app/lib/dal"
+import PagePoller from "@/app/components/PagePoller"
 import { formatDuration } from "@/app/lib/format"
 import { BookingStatus } from "@prisma/client"
 import {
@@ -67,6 +68,22 @@ export default async function SellerBookingsPage() {
       buyer: { select: { id: true, name: true } },
       // Day 25: 받은 후기 (1:1, 선택). completed 카드의 *받은 후기 박스* 표시.
       review: { select: { rating: true, content: true } },
+      // Day 31: 안 읽은 메시지 수 — *상대방 (buyer)* 이 보낸 isRead=false 만 카운트.
+      // sellerProfile.userId 기준 — seller user 가 *받은* 메시지가 안 읽은 것.
+      messageThread: {
+        select: {
+          _count: {
+            select: {
+              messages: {
+                where: {
+                  isRead: false,
+                  senderId: { not: sellerProfile.userId },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   })
@@ -80,6 +97,9 @@ export default async function SellerBookingsPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
+      {/* Day 31: 실시간 뱃지 갱신 — 안 읽은 메시지 수가 5초마다 자동 동기화. */}
+      <PagePoller />
+
       <PageTabs items={SELLER_TABS} />
       <h1 className="mb-8 text-3xl font-bold tracking-tight">받은 예약</h1>
 
@@ -221,9 +241,15 @@ export default async function SellerBookingsPage() {
                   </div>
                   <Link
                     href={`/seller/bookings/${b.id}/messages`}
-                    className="text-sm text-accent hover:underline"
+                    className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
                   >
                     메시지 →
+                    {/* Day 31: 안 읽은 메시지 N 뱃지 — buyer /bookings 와 대칭. */}
+                    {(b.messageThread?._count.messages ?? 0) > 0 && (
+                      <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-bg px-1.5 text-xs font-medium text-white no-underline dark:text-zinc-900">
+                        {b.messageThread!._count.messages}
+                      </span>
+                    )}
                   </Link>
                 </div>
               </li>

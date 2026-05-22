@@ -15,6 +15,8 @@
 //
 // 시간 표시 — HH:MM 만 (학습 단계). 날짜 분리 / "어제" 같은 친절은 추후 진화.
 
+import AutoScrollAnchor from "@/app/components/AutoScrollAnchor"
+
 type MessageWithSender = {
   id: number
   senderId: number
@@ -36,8 +38,11 @@ export default function MessageThread({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* 메시지 목록 — 오래된 위, 최신 아래 (카톡식). 자연 스크롤. */}
-      <div className="min-h-[200px] space-y-3 rounded-xl border border-line bg-surface p-4">
+      {/* 메시지 목록 — 오래된 위, 최신 아래 (카톡식).
+          Day 31: max-h-[60vh] + overflow-y-auto → *영역 내부* 스크롤. 입력 폼은 항상 보임.
+          AutoScrollAnchor 의 scrollIntoView 가 *가장 가까운 스크롤 컨테이너* 를 자동 인식 →
+          코드 변경 없이도 *메시지 영역 안* 으로 스크롤 자연 전환. */}
+      <div className="scrollbar-thin min-h-[200px] max-h-[60vh] space-y-3 overflow-y-auto rounded-xl border border-line bg-surface p-4">
         {messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-ink-muted">
             아직 메시지가 없어요. 첫 메시지를 보내보세요.
@@ -75,6 +80,9 @@ export default function MessageThread({
             )
           })
         )}
+        {/* 스크롤 닻 (Day 31) — messages 변경 시 trigger 가 바뀌어 자동 스크롤 다운.
+            메시지 목록 *마지막* 위치에 둠 — 새 메시지 추가되어도 anchor 가 *최신 아래* 위치. */}
+        <AutoScrollAnchor trigger={messages.length} />
       </div>
 
       {/* 입력 폼 — 단일 라인 input + 우측 수직 중앙 버튼.

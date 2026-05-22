@@ -38,3 +38,34 @@ export async function sendMessageAction(formData: FormData) {
 
   revalidatePath(`/bookings/${bookingId}/messages`)
 }
+
+// Day 31 — 메시지 페이지 마운트 시 *상대방 (seller)* 메시지 읽음 처리.
+// Server Component 안에서 호출하면 Next.js 16+ 차단 → Client (MarkAsReadOnMount) 가 useEffect 에서 호출.
+// 권한: 본인 booking 만. mutation 후 /bookings 목록 캐시 무효화 → 뱃지 즉시 갱신.
+export async function markAsReadAction(bookingId: number) {
+  const session = await verifySession()
+  if (!session) return // 비로그인은 어차피 메시지 페이지 도달 X — silent return
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      buyerId: true,
+      messageThread: { select: { id: true } },
+    },
+  })
+  if (!booking || booking.buyerId !== session.userId) return
+  if (!booking.messageThread) return
+
+  const result = await prisma.message.updateMany({
+    where: {
+      threadId: booking.messageThread.id,
+      senderId: { not: session.userId },
+      isRead: false,
+    },
+    data: { isRead: true },
+  })
+
+  if (result.count > 0) {
+    revalidatePath("/bookings")
+  }
+}
